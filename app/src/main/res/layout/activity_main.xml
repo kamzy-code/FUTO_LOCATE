@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:gravity="center"
+    tools:context=".MainActivity">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        >
+
+        <ImageView
+            android:id="@+id/futo_logo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/futo_logo"
+            android:layout_centerHorizontal="true">
+        </ImageView>
+
+        <TextView
+            android:id="@+id/login_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/futo_logo"
+            android:text="Login"
+            android:textSize="32sp"
+            android:layout_centerHorizontal="true"
+            android:textStyle="normal"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="#171D29"
+            android:layout_marginTop="25dp">
+        </TextView>
+
+        <EditText
+            android:id="@+id/email_input"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_below="@id/login_text"
+            android:layout_marginTop="25dp"
+            android:paddingStart="20dp"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-medium"
+            android:hint="e-mail">
+        </EditText>
+
+        <EditText
+            android:id="@+id/password_input"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_below="@id/email_input"
+            android:layout_marginTop="16dp"
+            android:paddingStart="20dp"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-medium"
+            android:hint="password">
+        </EditText>
+
+        <TextView
+            android:id="@+id/forgot_password"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/password_input"
+            android:text="Forgot Password"
+            android:textSize="16sp"
+            android:layout_alignParentRight="true"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="#171D29"
+            android:layout_marginTop="16dp">
+        </TextView>
+
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:id="@+id/login_button"
+            android:layout_below="@id/forgot_password"
+            android:text="Login"
+            android:layout_marginTop="25dp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-medium"
+            android:textSize="16sp"
+            android:backgroundTint="#2B943F">
+        </Button>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_below="@+id/login_button"
+            android:orientation="horizontal"
+            android:layout_marginTop="25dp">
+            <TextView
+                android:id="@+id/dont_have_account"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Don't have an account?"
+                android:textSize="16sp"
+                android:textStyle="normal"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="#171D29">
+            </TextView>
+            <TextView
+                android:id="@+id/Signup"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:text="Signup"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="#2B943F">
+            </TextView>
+
+        </LinearLayout>
+
+
+    </RelativeLayout>
+
+</LinearLayout>
