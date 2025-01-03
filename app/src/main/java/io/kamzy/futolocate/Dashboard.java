@@ -32,9 +32,9 @@ public class Dashboard extends AppCompatActivity {
         ctx = this;
         mapView = findViewById(R.id.map_view);
 
-//        mapView.setTileSource(TileSourceFactory.MAPNIK);
-//        mapView.getController().setZoom(15);
-//        GeoPoint futoLocation = new GeoPoint(5.3792, 6.9974);
-//        mapView.getController().setCenter(futoLocation);
+        mapView.setTileSource(TileSourceFactory.MAPNIK);
+        mapView.getController().setZoom(15);
+        GeoPoint futoLocation = new GeoPoint(5.3792, 6.9974);
+        mapView.getController().setCenter(futoLocation);
     }
 }
