@@ -38,7 +38,7 @@
         </TextView>
 
         <EditText
-            android:id="@+id/email_input"
+            android:id="@+id/login_email_input"
             android:layout_width="match_parent"
             android:layout_height="60dp"
             android:layout_below="@id/login_text"
@@ -51,10 +51,10 @@
             android:textSize="14sp" />
 
         <EditText
-            android:id="@+id/password_input"
+            android:id="@+id/login_password_input"
             android:layout_width="match_parent"
             android:layout_height="60dp"
-            android:layout_below="@id/email_input"
+            android:layout_below="@id/login_email_input"
             android:layout_marginTop="16dp"
             android:paddingStart="20dp"
             android:background="@drawable/outlined_shape"
@@ -67,7 +67,7 @@
             android:id="@+id/forgot_password"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@+id/password_input"
+            android:layout_below="@+id/login_password_input"
             android:text="Forgot Password"
             android:textSize="16sp"
             android:layout_alignParentRight="true"
@@ -108,7 +108,7 @@
                 android:textColor="#171D29">
             </TextView>
             <TextView
-                android:id="@+id/Signup"
+                android:id="@+id/Signup_text_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="5dp"
