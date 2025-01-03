@@ -1,5 +1,6 @@
 package io.kamzy.futolocate;
 
+import android.content.Context;
 import android.os.Bundle;
 
 import androidx.activity.EdgeToEdge;
@@ -14,7 +15,8 @@ import org.osmdroid.views.MapView;
 
 public class Dashboard extends AppCompatActivity {
 
-    MapView mapView = findViewById(R.id.mapView);
+    MapView mapView;
+    Context ctx;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,9 +29,12 @@ public class Dashboard extends AppCompatActivity {
             return insets;
         });
 
-        mapView.setTileSource(TileSourceFactory.MAPNIK);
-        mapView.getController().setZoom(15);
-        GeoPoint futoLocation = new GeoPoint(5.3792, 6.9974);
-        mapView.getController().setCenter(futoLocation);
+        ctx = this;
+        mapView = findViewById(R.id.map_view);
+
+//        mapView.setTileSource(TileSourceFactory.MAPNIK);
+//        mapView.getController().setZoom(15);
+//        GeoPoint futoLocation = new GeoPoint(5.3792, 6.9974);
+//        mapView.getController().setCenter(futoLocation);
     }
 }
