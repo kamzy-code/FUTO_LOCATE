@@ -44,9 +44,11 @@
             android:layout_below="@id/login_text"
             android:layout_marginTop="25dp"
             android:fontFamily="sans-serif-medium"
+            android:background="@drawable/outlined_shape"
             android:hint="e-mail"
+            android:inputType="textEmailAddress"
             android:paddingStart="20dp"
-            android:textSize="14sp"></EditText>
+            android:textSize="14sp" />
 
         <EditText
             android:id="@+id/password_input"
@@ -55,10 +57,11 @@
             android:layout_below="@id/email_input"
             android:layout_marginTop="16dp"
             android:paddingStart="20dp"
+            android:background="@drawable/outlined_shape"
+            android:inputType="textPassword"
             android:textSize="14sp"
             android:fontFamily="sans-serif-medium"
-            android:hint="password">
-        </EditText>
+            android:hint="password" />
 
         <TextView
             android:id="@+id/forgot_password"

@@ -42,12 +42,13 @@
             android:layout_width="match_parent"
             android:layout_height="60dp"
             android:layout_below="@id/signup_text"
+            android:background="@drawable/outlined_shape"
             android:layout_marginTop="25dp"
             android:paddingStart="20dp"
+            android:inputType="text"
             android:textSize="14sp"
             android:fontFamily="sans-serif-medium"
-            android:hint="Name">
-        </EditText>
+            android:hint="Name" />
 
         <EditText
             android:id="@+id/email_input"
@@ -55,23 +56,25 @@
             android:layout_height="60dp"
             android:layout_below="@id/name_input"
             android:layout_marginTop="16dp"
+            android:background="@drawable/outlined_shape"
             android:paddingStart="20dp"
+            android:inputType="textEmailAddress"
             android:textSize="14sp"
             android:fontFamily="sans-serif-medium"
-            android:hint="email">
-        </EditText>
+            android:hint="email" />
 
         <EditText
             android:id="@+id/c_email_input"
             android:layout_width="match_parent"
             android:layout_height="60dp"
             android:layout_below="@id/email_input"
+            android:inputType="textEmailAddress"
+            android:background="@drawable/outlined_shape"
             android:layout_marginTop="16dp"
             android:paddingStart="20dp"
             android:textSize="14sp"
             android:fontFamily="sans-serif-medium"
-            android:hint="confirm e-mail">
-        </EditText>
+            android:hint="confirm e-mail" />
 
         <EditText
             android:id="@+id/password_input"
@@ -79,23 +82,25 @@
             android:layout_height="60dp"
             android:layout_below="@id/c_email_input"
             android:layout_marginTop="16dp"
+            android:background="@drawable/outlined_shape"
+            android:inputType="textPassword"
             android:paddingStart="20dp"
             android:textSize="14sp"
             android:fontFamily="sans-serif-medium"
-            android:hint="password">
-        </EditText>
+            android:hint="password" />
 
         <EditText
             android:id="@+id/c_password_input"
             android:layout_width="match_parent"
             android:layout_height="60dp"
             android:layout_below="@id/password_input"
+            android:background="@drawable/outlined_shape"
             android:layout_marginTop="16dp"
+            android:inputType="textPassword"
             android:paddingStart="20dp"
             android:textSize="14sp"
             android:fontFamily="sans-serif-medium"
-            android:hint="confirm password">
-        </EditText>
+            android:hint="confirm password" />
 
         <Button
             android:layout_width="match_parent"
