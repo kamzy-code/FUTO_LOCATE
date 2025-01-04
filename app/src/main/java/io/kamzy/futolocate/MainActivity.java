@@ -93,13 +93,11 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-    private void callLoginAPI(String endpoint, String ...parameters) throws IOException {
-        FormBody.Builder requestParams = new FormBody.Builder();
-        int i =0;
-        for(String param: parameters) {
-            requestParams.add("p"+i, param);
-            i++;
-        }
+    private void callLoginAPI(String endpoint, String email, String password) throws IOException {
+        FormBody.Builder requestParams = new FormBody.Builder()
+                .add("email", email)
+                .add("passwprd", password);
+
         new Thread(()->{
             try (Response response = client.newCall(prepServerRequest(endpoint, requestParams)).execute()) {
                 int statusCode = response.code();
