@@ -94,7 +94,7 @@ public class Signup extends AppCompatActivity {
                     if (userEmail.equals(userConfirmEmail) && userPassword.equals(userConfirmPassword)){
                         Log.i("Params Status", "Parameters match");
                         try {
-                            callSignupAPI("/api/auth/signup", userName, userEmail, userPassword, userPhone);
+                            callSignupAPI("api/auth/signup", userName, userEmail, userPassword, userPhone);
                         } catch (IOException | JSONException e) {
                             throw new RuntimeException(e);
                         }
@@ -124,6 +124,8 @@ public class Signup extends AppCompatActivity {
                 .put("password", parameters[2])
                 .put("phone", parameters[3])
                 .put("role", "user");
+
+        Log.i("Array", jsonObject.toString());
 
         RequestBody body = RequestBody.create(
                 jsonObject.toString(),
