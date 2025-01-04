@@ -18,6 +18,9 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 
 import okhttp3.FormBody;
@@ -99,22 +102,26 @@ public class MainActivity extends AppCompatActivity {
         }
         new Thread(()->{
             try (Response response = client.newCall(prepServerRequest(endpoint, requestParams)).execute()) {
-                if (!response.isSuccessful()){
-                    Log.e("API call error", "error connecting to API");
-                } else {
-                    String responseBody = response.body().toString();
+                int statusCode = response.code();
+                Log.i("statusCode", String.valueOf(statusCode));
+                if (response.isSuccessful()){
+                    JSONObject responseBody = new JSONObject(response.body().string());
+                    String token = responseBody.getString("token");
+                    Log.i("response", token);
                     runOnUiThread(()->{
-                        if (responseBody.equals("Invalid credentials")){
-                            Toast.makeText(ctx, "invalid username or password", Toast.LENGTH_LONG).show();
-                        }
-                        else {
                             Intent intent = new Intent(ctx, Dashboard.class);
+                            intent.putExtra("token", token);
                             startActivity(intent);
-                        }
                     });
+                } else if (statusCode == 401){
+                    runOnUiThread(()->{
+                        Toast.makeText(ctx, "invalid username or password", Toast.LENGTH_LONG).show();
+                    });
+                } else {
+                    Log.e("API call error", "error connecting to API");
                 }
             }
-            catch (IOException e){
+            catch (IOException | JSONException e){
                 throw new RuntimeException(e);
             }
         }).start();
