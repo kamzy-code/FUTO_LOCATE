@@ -6,12 +6,11 @@ import okhttp3.RequestBody;
 
 public class Tools {
 
-    public static Request prepServerRequest(String endpoint, FormBody.Builder request_parameters){
-        RequestBody formBody = request_parameters.build();
+    public static Request prepPostServerRequest(String endpoint, RequestBody request_body){
         String baseURL = "http://192.168.0.106:8080/";
         return new Request.Builder()
                 .url(baseURL+endpoint)
-                .post(formBody)
+                .post(request_body)
                 .build();
     }
 }

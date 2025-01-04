@@ -1,6 +1,6 @@
 package io.kamzy.futolocate;
 
-import static io.kamzy.futolocate.Tools.Tools.prepServerRequest;
+import static io.kamzy.futolocate.Tools.Tools.prepPostServerRequest;
 
 import android.content.Context;
 import android.content.Intent;
@@ -25,6 +25,7 @@ import java.io.IOException;
 
 import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity {
@@ -96,10 +97,12 @@ public class MainActivity extends AppCompatActivity {
     private void callLoginAPI(String endpoint, String email, String password) throws IOException {
         FormBody.Builder requestParams = new FormBody.Builder()
                 .add("email", email)
-                .add("passwprd", password);
+                .add("password", password);
+
+        RequestBody formBody = requestParams.build();
 
         new Thread(()->{
-            try (Response response = client.newCall(prepServerRequest(endpoint, requestParams)).execute()) {
+            try (Response response = client.newCall(prepPostServerRequest(endpoint, formBody)).execute()) {
                 int statusCode = response.code();
                 Log.i("statusCode", String.valueOf(statusCode));
                 if (response.isSuccessful()){
