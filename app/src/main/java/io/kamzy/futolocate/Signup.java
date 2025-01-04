@@ -122,7 +122,7 @@ public class Signup extends AppCompatActivity {
         jsonObject.put("full_name", parameters[0])
                 .put("email", parameters[1])
                 .put("password", parameters[2])
-                .put("phone", parameters[3])
+                .put("phone_number", parameters[3])
                 .put("role", "user");
 
         Log.i("Array", jsonObject.toString());
