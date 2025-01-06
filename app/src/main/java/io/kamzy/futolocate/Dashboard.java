@@ -136,7 +136,7 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
                     runOnUiThread(()->{
                         for (Landmarks landmark : allLandmarks){
                             Log.i("Landmarks", "Name: "+ landmark.getName()+ " Lat: " + landmark.getLatitude()+
-                                    " Long: " + landmark.getLongitude());
+                                    " Long: " + landmark.getLongitude() + " Cat: " + landmark.getCategory());
                             addMarkerToMap(map, landmark.getName(), landmark.getLatitude(), landmark.getLongitude());
                         }
                     });
