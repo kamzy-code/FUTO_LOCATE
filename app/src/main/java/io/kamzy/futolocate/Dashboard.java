@@ -4,6 +4,7 @@ import static io.kamzy.futolocate.Tools.Tools.baseURL;
 import static io.kamzy.futolocate.Tools.Tools.prepGetRequestWithoutBody;
 
 import android.content.Context;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
@@ -208,7 +209,7 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
                 if (response.isSuccessful()){
                         String r = response.body() != null ? response.body().string() : "null";
                         if (r.equals("null")) {
-                            Log.e("API Error", "Response body is null or empty");
+                            performExternalSearchQuery(query, m);
                             return; // Exit the method or handle the error appropriately
                         }else {
                                 JSONObject responseBody =  new JSONObject(r);
@@ -224,7 +225,7 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
                                 });
                         }
                 } else {
-//                    Log.i("Erorrrrr", "No location found");
+                    Log.e("API Error", "Couldn't perform search");
                 }
             }catch (IOException | JSONException | NullPointerException  e){
                 throw new RuntimeException(e);
@@ -232,6 +233,50 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
         }).start();
     }
 
+
+//    perform External search query
+
+    private void performExternalSearchQuery (String query, MapView map) throws IOException{
+        String url = "https://nominatim.openstreetmap.org/search?format=json&q=" + Uri.encode(query);
+
+        Request request = new Request.Builder().url(url).build();
+
+        new Thread(()->{
+            try(Response response = client.newCall(request).execute()) {
+                int statusCode = response.code();
+                Log.i("statusCode", String.valueOf(statusCode));
+                if (response.isSuccessful()){
+                    String r = response.body() != null ? response.body().string() : "null";
+                    if (r.equals("null")){
+                        Log.i("Search Result", "No external location found");
+                    } else {
+                        try {
+                            JSONArray results = new JSONArray(r);
+                            if (results.length() > 0) {
+                                JSONObject location = results.getJSONObject(0);
+                                double lat = location.getDouble("lat");
+                                double lon = location.getDouble("lon");
+
+                                runOnUiThread(() -> {
+                                    GeoPoint geoPoint = new GeoPoint(lat, lon);
+                                    map.getController().setCenter(geoPoint);
+                                    map.getController().setZoom(18.0);
+                                    addMarkerToMap(map, query, lat, lon);
+                                });
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                } else {
+                    Log.i("API Error", "Couldn't perform External Search");
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            ;
+        }).start();
+    }
 
 // convert JSONArray landmarks to List<Landmarks>
     private List<Landmarks> parseJSONArrayUsingGson(String jsonArrayString) {
