@@ -1,11 +1,14 @@
 package io.kamzy.futolocate;
 
+import static io.kamzy.futolocate.Tools.Tools.baseURL;
 import static io.kamzy.futolocate.Tools.Tools.prepGetRequestWithoutBody;
 
 import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.inputmethod.EditorInfo;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -16,11 +19,14 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
@@ -32,7 +38,9 @@ import java.lang.reflect.Type;
 import java.util.List;
 
 import io.kamzy.futolocate.Models.Landmarks;
+import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import okhttp3.Response;
 
 public class Dashboard extends AppCompatActivity {
@@ -42,6 +50,9 @@ public class Dashboard extends AppCompatActivity {
     BottomNavigationView bottomNav;
     OkHttpClient client = new OkHttpClient();
     String token;
+    TextInputLayout searchTextInputLayout, fromTextInputLayout, toTextInputLayout;
+    TextInputEditText searchEditText, fromEditText, toEditText;
+    List<Landmarks> dbLandmarks;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +69,13 @@ public class Dashboard extends AppCompatActivity {
         mapView = findViewById(R.id.map_view);
         bottomNav = findViewById(R.id.bottom_navigation);
         token = getIntent().getStringExtra("token");
+        searchTextInputLayout = findViewById(R.id.searchTextInputLayout);
+        fromTextInputLayout = findViewById(R.id.fromTextInputLayout);
+        toTextInputLayout = findViewById(R.id.toTextInputLayout);
+        searchEditText = findViewById(R.id.searchEditText);
+        fromEditText = findViewById(R.id.fromLocationEditText);
+        toEditText = findViewById(R.id.toLocationEditText);
+
 
 
 //        Initialize Map
@@ -82,6 +100,28 @@ public class Dashboard extends AppCompatActivity {
 
         findViewById(R.id.fab_navigate).setOnClickListener(v -> {
             // Handle FAB click
+            if (fromTextInputLayout.getVisibility() == View.GONE && toTextInputLayout.getVisibility() == View.GONE) {
+                // Show navigation fields
+                searchTextInputLayout.setVisibility(View.GONE);
+                fromTextInputLayout.setVisibility(View.VISIBLE);
+                toTextInputLayout.setVisibility(View.VISIBLE);
+            } else {
+                // Revert to normal search field
+                searchTextInputLayout.setVisibility(View.VISIBLE);
+                fromTextInputLayout.setVisibility(View.GONE);
+                toTextInputLayout.setVisibility(View.GONE);
+            }
+        });
+
+//        normal search action
+        searchEditText.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH){
+                String query = searchEditText.getText().toString().trim();
+                if (!query.isEmpty()){
+                    performSearch(query, token, mapView);
+                    return true;
+                }
+            } return false;
         });
 
         // Bottom Navigation
@@ -132,7 +172,7 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
                 Log.i("statusCode", String.valueOf(statusCode));
                 if (response.isSuccessful()){
                     JSONArray responseBody = new JSONArray(response.body().string());
-                    List<Landmarks> allLandmarks = parseLandmarksUsingGson(String.valueOf(responseBody));
+                    List<Landmarks> allLandmarks = parseJSONArrayUsingGson(String.valueOf(responseBody));
                     runOnUiThread(()->{
                         for (Landmarks landmark : allLandmarks){
                             Log.i("Landmarks", "Name: "+ landmark.getName()+ " Lat: " + landmark.getLatitude()+
@@ -144,16 +184,68 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
             }catch (IOException | JSONException e){
                 throw new RuntimeException(e);
             }
+        }).start();
+    }
 
+
+    private void searchLandmarkAPI(String endpoint, String query, String authToken, MapView m) throws IOException, JSONException, NullPointerException{
+        new Thread(() -> {
+//            Build the URL with query parameters
+            HttpUrl url = HttpUrl.parse(baseURL+endpoint)
+                    .newBuilder()
+                    .addQueryParameter("query", query)
+                    .build();
+
+            // Build the GET request
+            Request request = new Request.Builder()
+                    .url(url)
+                    .addHeader("Authorization", "Bearer "+ authToken)
+                    .get()
+                    .build();
+            try(Response response = client.newCall(request).execute()){
+                int statusCode = response.code();
+                Log.i("statusCode", String.valueOf(statusCode));
+                if (response.isSuccessful()){
+                        String r = response.body() != null ? response.body().string() : "null";
+                        if (r.equals("null")) {
+                            Log.e("API Error", "Response body is null or empty");
+                            return; // Exit the method or handle the error appropriately
+                        }else {
+                                JSONObject responseBody =  new JSONObject(r);
+                                Landmarks l = parseJSONObjectUsingGson(String.valueOf(responseBody));
+                                runOnUiThread(() -> {
+                                    Log.i("Name: ", l.getName());
+                                    // Center map on found location
+                                    GeoPoint geoPoint = new GeoPoint(l.getLatitude(), l.getLongitude());
+                                    m.getController().setCenter(geoPoint);
+                                    m.getController().setZoom(18.0);
+                                    // Optionally add a marker
+                                    addMarkerToMap(m, l.getName(), l.getLatitude(), l.getLongitude());
+                                });
+                        }
+                } else {
+//                    Log.i("Erorrrrr", "No location found");
+                }
+            }catch (IOException | JSONException | NullPointerException  e){
+                throw new RuntimeException(e);
+            }
         }).start();
     }
 
 
 // convert JSONArray landmarks to List<Landmarks>
-    public List<Landmarks> parseLandmarksUsingGson(String jsonArrayString) {
+    private List<Landmarks> parseJSONArrayUsingGson(String jsonArrayString) {
         Gson gson = new Gson();
         Type listType = new TypeToken<List<Landmarks>>() {}.getType();
         return gson.fromJson(jsonArrayString, listType);
+    }
+
+
+    // convert JSONObject landmarks to List<Landmarks>
+    private Landmarks parseJSONObjectUsingGson(String jsonObjectString) {
+        Gson gson = new Gson();
+        Type type = new TypeToken<Landmarks>() {}.getType();
+        return gson.fromJson(jsonObjectString, type);
     }
 
 
@@ -166,5 +258,13 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
         marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM); // Adjusts the marker's position
         displayedMap.getOverlays().add(marker); // Adds the marker to the map
         displayedMap.invalidate(); // Refreshes the map
+    }
+
+    private void performSearch (String query, String token, MapView map){
+        try {
+            searchLandmarkAPI("api/landmark/search", query, token, map);
+        } catch (IOException | JSONException | NullPointerException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -7,23 +7,68 @@
     android:layout_height="match_parent"
     tools:context=".Dashboard">
 
-<!--search bar-->
-    <com.google.android.material.textfield.TextInputLayout
+    <LinearLayout
+        android:id="@+id/navigationFieldsContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:layout_alignParentTop="true"
-        android:id="@+id/search_bar_container">
+        android:orientation="vertical"
+        android:layout_margin="16dp">
 
-        <com.google.android.material.textfield.TextInputEditText
+        <!-- Normal Search Field -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/searchTextInputLayout"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/search_bar"
-            android:hint="Search here"
-            android:drawableStart="@drawable/search"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp" />
-    </com.google.android.material.textfield.TextInputLayout>
+            android:layout_height="56dp"
+            app:boxBackgroundMode="outline"
+            app:boxStrokeColor="#2B943F">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/searchEditText"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:hint="Search for location" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Navigation Fields (Initially Hidden) -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/fromTextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp"
+            android:visibility="gone"
+            app:boxBackgroundMode="outline"
+            app:boxStrokeColor="#2B943F">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/fromLocationEditText"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:hint="From Location" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/toTextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp"
+            android:visibility="gone"
+            app:boxBackgroundMode="outline"
+            app:boxStrokeColor="#2B943F">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/toLocationEditText"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:hint="To Location" />
+        </com.google.android.material.textfield.TextInputLayout>
+    </LinearLayout>
+
 
 <!--filters -->
     <com.google.android.material.chip.ChipGroup
@@ -33,7 +78,7 @@
         android:layout_marginTop="8dp"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:layout_below="@+id/search_bar_container"
+        android:layout_below="@+id/navigationFieldsContainer"
         app:singleSelection="true">
 
         <com.google.android.material.chip.Chip
