@@ -20,7 +20,9 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             app:boxBackgroundMode="outline"
-            app:boxStrokeColor="#2B943F">
+            app:boxStrokeColor="#2B943F"
+            app:endIconMode="clear_text"
+            app:endIconTint="#2F2F2F">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/searchEditText"
@@ -39,7 +41,9 @@
             android:layout_marginTop="8dp"
             android:visibility="gone"
             app:boxBackgroundMode="outline"
-            app:boxStrokeColor="#2B943F">
+            app:boxStrokeColor="#2B943F"
+            app:endIconMode="clear_text"
+            app:endIconTint="#2F2F2F">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/fromLocationEditText"
@@ -57,7 +61,9 @@
             android:layout_marginTop="8dp"
             android:visibility="gone"
             app:boxBackgroundMode="outline"
-            app:boxStrokeColor="#2B943F">
+            app:boxStrokeColor="#2B943F"
+            app:endIconMode="clear_text"
+            app:endIconTint="#2F2F2F">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/toLocationEditText"
