@@ -4,9 +4,13 @@ import static io.kamzy.futolocate.Tools.Tools.baseURL;
 import static io.kamzy.futolocate.Tools.Tools.prepGetRequestWithoutBody;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.StrictMode;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
@@ -31,7 +35,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
-import org.osmdroid.tileprovider.tilesource.XYTileSource;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.Marker;
@@ -62,6 +65,7 @@ public class Dashboard extends AppCompatActivity {
     String token;
     TextInputLayout searchTextInputLayout, fromTextInputLayout, toTextInputLayout;
     TextInputEditText searchEditText, fromEditText, toEditText;
+    Marker searchMarker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -193,7 +197,7 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
                         for (Landmarks landmark : allLandmarks){
                             Log.i("Landmarks", "Name: "+ landmark.getName()+ " Lat: " + landmark.getLatitude()+
                                     " Long: " + landmark.getLongitude() + " Cat: " + landmark.getCategory());
-                            addMarkerToMap(map, landmark.getName(), landmark.getLatitude(), landmark.getLongitude());
+                            addDBlandmarksToMap(map, landmark.getName(), landmark.getLatitude(), landmark.getLongitude());
                         }
                     });
                 }
@@ -236,7 +240,7 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
                                     m.getController().setCenter(geoPoint);
                                     m.getController().setZoom(18.0);
                                     // Optionally add a marker
-                                    addMarkerToMap(m, l.getName(), l.getLatitude(), l.getLongitude());
+                                    addSearchMarkerToMap(m, l.getName(), l.getLatitude(), l.getLongitude());
                                 });
                         }
                 } else {
@@ -280,7 +284,7 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
                                     GeoPoint geoPoint = new GeoPoint(lat, lon);
                                     map.getController().setCenter(geoPoint);
                                     map.getController().setZoom(18.0);
-                                    addMarkerToMap(map, query, lat, lon);
+                                    addSearchMarkerToMap(map, query, lat, lon);
                                 });
                             }
                         } catch (Exception e) {
@@ -315,12 +319,42 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
 
 
     // Method to add landmarks from the DB to the Map
-    private void addMarkerToMap(MapView displayedMap, String name, double latitude, double longitude) {
-        Marker marker = new Marker(displayedMap);
+    private void addDBlandmarksToMap(MapView displayedMap, String name, double latitude, double longitude) {
+        // Set up the Paint for the text
+        Paint paint = new Paint();
+        paint.setColor(android.graphics.Color.BLACK);
+        paint.setTextSize(30); // Adjust text size as needed
+        paint.setTextAlign(Paint.Align.LEFT);
+
+        // Measure the text
+        Paint.FontMetrics fontMetrics = paint.getFontMetrics();
+        float textWidth = paint.measureText(name);
+        float textHeight = fontMetrics.bottom - fontMetrics.top;
+
+        // Add padding around the text
+        int padding = 20; // Adjust padding as needed
+        int bitmapWidth = (int) (textWidth + padding * 2);
+        int bitmapHeight = (int) (textHeight + padding * 2);
+
+        // Create a Bitmap with enough space for the text
+        Bitmap bitmap = Bitmap.createBitmap(bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+
+        // Draw the text on the Bitmap
+        canvas.drawText(name, padding, padding - fontMetrics.ascent, paint);
+
+        // Create a Drawable from the Bitmap
+        BitmapDrawable drawable = new BitmapDrawable(mapView.getContext().getResources(), bitmap);
+
+//        add the marker to the map
+        // Create the Marker
+        Marker marker = new Marker(mapView);
         marker.setPosition(new GeoPoint(latitude, longitude));
+        marker.setIcon(drawable);
+        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_TOP); // Center the text above the marker
         marker.setTitle(name); // This shows a title when the marker is tapped
-        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM); // Adjusts the marker's position
         displayedMap.getOverlays().add(marker); // Adds the marker to the map
+
         displayedMap.invalidate(); // Refreshes the map
     }
 
@@ -330,6 +364,12 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
         } catch (IOException | JSONException | NullPointerException e) {
             throw new RuntimeException(e);
         }
+    }
+
+
+    private String[] splitTextIntoLines(String text, int maxCharsPerLine) {
+        // Breaks text into lines of maxCharsPerLine characters
+        return TextUtils.split(text, "(?<=\\G.{" + maxCharsPerLine + "})");
     }
 
     OkHttpClient getUnsafeOkHttpClient() {
@@ -368,6 +408,19 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void addSearchMarkerToMap(MapView mapView, String name, double latitude, double longitude) {
+        if (searchMarker != null) {
+            mapView.getOverlays().remove(searchMarker);
+        }
+
+        searchMarker = new Marker(mapView);
+        searchMarker.setPosition(new GeoPoint(latitude, longitude));
+        searchMarker.setTitle(name);
+        searchMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+        mapView.getOverlays().add(searchMarker);
+        mapView.invalidate(); // Refresh the map
     }
 
 }
