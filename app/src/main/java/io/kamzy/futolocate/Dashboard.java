@@ -6,6 +6,7 @@ import static io.kamzy.futolocate.Tools.Tools.prepGetRequestWithoutBody;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.StrictMode;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
@@ -30,13 +31,21 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
+import org.osmdroid.tileprovider.tilesource.XYTileSource;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.Marker;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import io.kamzy.futolocate.Models.Landmarks;
 import okhttp3.HttpUrl;
@@ -53,7 +62,6 @@ public class Dashboard extends AppCompatActivity {
     String token;
     TextInputLayout searchTextInputLayout, fromTextInputLayout, toTextInputLayout;
     TextInputEditText searchEditText, fromEditText, toEditText;
-    List<Landmarks> dbLandmarks;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,6 +89,13 @@ public class Dashboard extends AppCompatActivity {
 
 //        Initialize Map
         Configuration.getInstance().setUserAgentValue(getPackageName());
+        // Configure osmdroid
+        File cacheDir = new File(getCacheDir(), "osmdroid_tiles");
+        if (!cacheDir.exists()) {
+            cacheDir.mkdirs();
+        }
+        Configuration.getInstance().setOsmdroidTileCache(cacheDir);
+
         mapView.setMultiTouchControls(true);
         mapView.getController().setZoom(17.0);
         mapView.setTileSource(TileSourceFactory.MAPNIK);
@@ -237,12 +252,16 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
 //    perform External search query
 
     private void performExternalSearchQuery (String query, MapView map) throws IOException{
+        OkHttpClient client1 = getUnsafeOkHttpClient();
         String url = "https://nominatim.openstreetmap.org/search?format=json&q=" + Uri.encode(query);
 
-        Request request = new Request.Builder().url(url).build();
+        Request request = new Request.Builder()
+                .url(url)
+                .header("User-Agent", "FUTOLocate/1.0 (udochukwu.chikezie20191152552@futo.edu.ng)")
+                .build();
 
         new Thread(()->{
-            try(Response response = client.newCall(request).execute()) {
+            try(Response response = client1.newCall(request).execute()) {
                 int statusCode = response.code();
                 Log.i("statusCode", String.valueOf(statusCode));
                 if (response.isSuccessful()){
@@ -312,4 +331,43 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
             throw new RuntimeException(e);
         }
     }
+
+    OkHttpClient getUnsafeOkHttpClient() {
+        try {
+            // Create a trust manager that does not validate certificate chains
+            final TrustManager[] trustAllCerts = new TrustManager[]{
+                    new X509TrustManager() {
+                        @Override
+                        public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) {}
+
+                        @Override
+                        public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) {}
+
+                        @Override
+                        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                            return new java.security.cert.X509Certificate[]{};
+                        }
+                    }
+            };
+
+            // Install the all-trusting trust manager
+            final SSLContext sslContext = SSLContext.getInstance("SSL");
+            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+
+            OkHttpClient.Builder builder = new OkHttpClient.Builder();
+            builder.sslSocketFactory(sslSocketFactory, (X509TrustManager) trustAllCerts[0]);
+            builder.hostnameVerifier((hostname, session) -> true);
+            builder.connectTimeout(30, TimeUnit.SECONDS) // Increase connection timeout
+                    .readTimeout(30, TimeUnit.SECONDS)    // Increase read timeout
+                    .writeTimeout(30, TimeUnit.SECONDS)   // Increase write timeout
+                    .build();
+
+
+            return builder.build();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }
