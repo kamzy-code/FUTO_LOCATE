@@ -6,11 +6,11 @@ import static io.kamzy.futolocate.Tools.Tools.prepGetRequestWithoutBody;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
@@ -35,13 +35,16 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
+import org.osmdroid.util.BoundingBox;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.Marker;
+import org.osmdroid.views.overlay.Polyline;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -51,9 +54,13 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 import io.kamzy.futolocate.Models.Landmarks;
+import io.kamzy.futolocate.Models.Routes;
+import io.kamzy.futolocate.enums.ModeOfTransport;
+import okhttp3.FormBody;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class Dashboard extends AppCompatActivity {
@@ -62,10 +69,11 @@ public class Dashboard extends AppCompatActivity {
     Context ctx;
     BottomNavigationView bottomNav;
     OkHttpClient client = new OkHttpClient();
-    String token;
+    String token, fromLocation, toLocation;
     TextInputLayout searchTextInputLayout, fromTextInputLayout, toTextInputLayout;
     TextInputEditText searchEditText, fromEditText, toEditText;
-    Marker searchMarker;
+    Marker searchMarker, fromMarker, toMarker;
+    Polyline routeLine;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,15 +141,85 @@ public class Dashboard extends AppCompatActivity {
             }
         });
 
-//        normal search action
+//        normal search action button
         searchEditText.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH){
                 String query = searchEditText.getText().toString().trim();
                 if (!query.isEmpty()){
-                    performSearch(query, token, mapView);
+                    performSearch(query, token, mapView, searchMarker -> {});
                     return true;
                 }
-            } return false;
+            }
+            return false;
+        });
+
+//      Navigate action
+        fromEditText.setOnEditorActionListener((v, actionId, event) -> {
+            fromLocation = fromEditText.getText().toString();
+            toLocation = toEditText.getText().toString();
+
+            if (!fromLocation.isEmpty() && !toLocation.isEmpty()) {
+                performFromLocate(fromLocation, token, mapView, fromMarker -> {
+                    performToLocate(toLocation, token, mapView, toMarker -> {
+                        if (fromMarker != null && toMarker != null) {
+                            GeoPoint fromLocationData = fromMarker.getPosition();
+                            GeoPoint toLocationData = toMarker.getPosition();
+
+                            try {
+                                getRouteAPI(
+                                        "api/navigation/routes/create",
+                                        String.valueOf(fromLocationData.getLatitude()),
+                                        String.valueOf(fromLocationData.getLongitude()),
+                                        String.valueOf(toLocationData.getLatitude()),
+                                        String.valueOf(toLocationData.getLongitude()),
+                                        String.valueOf(ModeOfTransport.walking),
+                                        token,
+                                        mapView
+                                );
+                            } catch (IOException | JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                });
+
+                return true;
+            }
+            return false;
+        });
+
+        toEditText.setOnEditorActionListener((v, actionId, event) -> {
+            fromLocation = fromEditText.getText().toString();
+            toLocation = toEditText.getText().toString();
+
+            if (!fromLocation.isEmpty() && !toLocation.isEmpty()) {
+                performFromLocate(fromLocation, token, mapView, fromMarker -> {
+                    performToLocate(toLocation, token, mapView, toMarker -> {
+                        if (fromMarker != null && toMarker != null) {
+                            GeoPoint fromLocationData = fromMarker.getPosition();
+                            GeoPoint toLocationData = toMarker.getPosition();
+
+                            try {
+                                getRouteAPI(
+                                        "api/navigation/routes/create",
+                                        String.valueOf(fromLocationData.getLatitude()),
+                                        String.valueOf(fromLocationData.getLongitude()),
+                                        String.valueOf(toLocationData.getLatitude()),
+                                        String.valueOf(toLocationData.getLongitude()),
+                                        String.valueOf(ModeOfTransport.walking),
+                                        token,
+                                        mapView
+                                );
+                            } catch (IOException | JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                });
+
+                return true;
+            }
+            return false;
         });
 
         // Bottom Navigation
@@ -183,8 +261,8 @@ public class Dashboard extends AppCompatActivity {
 
 
 
-
-
+//  APIs
+//  get all landmarks from DB
 private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) throws IOException, JSONException {
         new Thread(()->{
             try(Response response = client.newCall(prepGetRequestWithoutBody(endpoint, authToken)).execute()){
@@ -207,8 +285,8 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
         }).start();
     }
 
-
-    private void searchLandmarkAPI(String endpoint, String query, String authToken, MapView m) throws IOException, JSONException, NullPointerException{
+//      perform local search
+    private void searchLandmarkAPI(String endpoint, String query, String authToken, MapView m, String action, OnMarkerAddedCallback callback) throws IOException, JSONException, NullPointerException{
         new Thread(() -> {
 //            Build the URL with query parameters
             HttpUrl url = HttpUrl.parse(baseURL+endpoint)
@@ -228,20 +306,38 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
                 if (response.isSuccessful()){
                         String r = response.body() != null ? response.body().string() : "null";
                         if (r.equals("null")) {
-                            performExternalSearchQuery(query, m);
+                            performExternalSearchQuery(query, m, action, callback);
                             return; // Exit the method or handle the error appropriately
                         }else {
                                 JSONObject responseBody =  new JSONObject(r);
                                 Landmarks l = parseJSONObjectUsingGson(String.valueOf(responseBody));
-                                runOnUiThread(() -> {
-                                    Log.i("Name: ", l.getName());
-                                    // Center map on found location
-                                    GeoPoint geoPoint = new GeoPoint(l.getLatitude(), l.getLongitude());
-                                    m.getController().setCenter(geoPoint);
-                                    m.getController().setZoom(18.0);
-                                    // Optionally add a marker
-                                    addSearchMarkerToMap(m, l.getName(), l.getLatitude(), l.getLongitude());
-                                });
+                                switch (action){
+                                    case "search" :
+                                        runOnUiThread(() -> {
+                                            Log.i("Name: ", l.getName());
+                                            // Center map on found location
+                                            GeoPoint geoPoint = new GeoPoint(l.getLatitude(), l.getLongitude());
+                                            m.getController().setCenter(geoPoint);
+                                            m.getController().setZoom(18.0);
+                                            // Optionally add a marker
+                                            addSearchMarkerToMap(m, l.getName(), l.getLatitude(), l.getLongitude(), callback);
+                                        });
+                                        break;
+                                    case "fromLocate":
+                                        runOnUiThread(() -> {
+                                            Log.i("Name: ", l.getName());
+                                            // add a marker
+                                            addfromMarkerToMap(m, l.getName(), l.getLatitude(), l.getLongitude(), callback);
+                                        });
+                                        break;
+                                    case "toLocate":
+                                        runOnUiThread(() -> {
+                                            Log.i("Name: ", l.getName());
+                                            // add a marker
+                                            addtoMarkerToMap(m, l.getName(), l.getLatitude(), l.getLongitude(), callback);
+                                        });
+                                        break;
+                                }
                         }
                 } else {
                     Log.e("API Error", "Couldn't perform search");
@@ -252,10 +348,8 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
         }).start();
     }
 
-
 //    perform External search query
-
-    private void performExternalSearchQuery (String query, MapView map) throws IOException{
+    private void performExternalSearchQuery (String query, MapView map, String action, OnMarkerAddedCallback callback) throws IOException{
         OkHttpClient client1 = getUnsafeOkHttpClient();
         String url = "https://nominatim.openstreetmap.org/search?format=json&q=" + Uri.encode(query);
 
@@ -269,9 +363,25 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
                 int statusCode = response.code();
                 Log.i("statusCode", String.valueOf(statusCode));
                 if (response.isSuccessful()){
-                    String r = response.body() != null ? response.body().string() : "null";
-                    if (r.equals("null")){
-                        Log.i("Search Result", "No external location found");
+                    String r = response.body() != null ? response.body().string() : "[]";
+                    Log.i("External Search", r);
+                    if (r.equals("[]")){
+                        Log.i("Search Result", "couldn't find location: " + query);
+                        switch (action){
+                            case "search" :
+                                runOnUiThread(() -> {
+                                    map.getOverlays().remove(searchMarker);
+                                });
+                                break;
+                            case "fromLocate":
+                            case "toLocate":
+                                runOnUiThread(() -> {
+                                    map.getOverlays().remove(fromMarker);
+                                    map.getOverlays().remove(toMarker);
+                                });
+                                break;
+                        }
+
                     } else {
                         try {
                             JSONArray results = new JSONArray(r);
@@ -280,12 +390,32 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
                                 double lat = location.getDouble("lat");
                                 double lon = location.getDouble("lon");
 
-                                runOnUiThread(() -> {
-                                    GeoPoint geoPoint = new GeoPoint(lat, lon);
-                                    map.getController().setCenter(geoPoint);
-                                    map.getController().setZoom(18.0);
-                                    addSearchMarkerToMap(map, query, lat, lon);
-                                });
+                                switch (action){
+                                    case "search" :
+                                        runOnUiThread(() -> {
+                                            Log.i("Name: ", query);
+                                            GeoPoint geoPoint = new GeoPoint(lat, lon);
+                                            map.getController().setCenter(geoPoint);
+                                            map.getController().setZoom(18.0);
+                                            addSearchMarkerToMap(map, query, lat, lon, callback);
+                                        });
+                                        break;
+                                    case "fromLocate":
+                                        runOnUiThread(() -> {
+                                            Log.i("Name: ", query);
+                                            // add a marker
+                                            addfromMarkerToMap(map, query, lat, lon, callback);
+                                        });
+                                        break;
+                                    case "toLocate":
+                                        runOnUiThread(() -> {
+                                            Log.i("Name: ", query);
+                                            // add a marker
+                                            addtoMarkerToMap(map, query, lat, lon, callback);
+                                        });
+                                        break;
+                                }
+
                             }
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -301,6 +431,80 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
         }).start();
     }
 
+    private void getRouteAPI (String endpoint, String startLat, String startLong, String endLat, String endLong, String transport, String authToken, MapView m) throws IOException, JSONException{
+        FormBody.Builder requestParams = new FormBody.Builder()
+                .add("startLat", startLat)
+                .add("startLong", startLong)
+                .add("endLat", endLat)
+                .add("endLong", endLong)
+                .add("modeOfTransport", transport);
+
+        RequestBody requestBody = requestParams.build();
+
+        Request request = new Request.Builder()
+                .url(baseURL + endpoint)
+                .addHeader("Authorization", "Bearer "+ authToken)
+                .post(requestBody)
+                .build();
+
+        new Thread(()->{
+            try(Response response = client.newCall(request).execute()){
+               int statusCode = response.code();
+                Log.i("statusCode", String.valueOf(statusCode));
+                if (response.isSuccessful()){
+                    String responseBody = response.body() != null ? response.body().string() : "null";
+                    if (responseBody.equals("null")){
+                        Log.i("Route", "No route found");
+                    }else {
+                        JSONObject jsonResponse = new JSONObject(responseBody);
+                        Routes routes = parseJSONObjecttoRoute(jsonResponse.toString());
+                        runOnUiThread(()->{
+                            Log.i("Route Data", routes.getPath_coordinates());
+                            Type listType = new TypeToken<List<List<Double>>>() {}.getType();
+                            List<List<Double>> routeData = new Gson().fromJson(routes.getPath_coordinates(), listType);
+
+                            // Step 1: Parse the route data into GeoPoints
+                            List<GeoPoint> geoPoints = new ArrayList<>();
+                            for (List<Double> point : routeData) {
+                                double longitude = point.get(0); // OSRM gives [longitude, latitude]
+                                double latitude = point.get(1);
+                                geoPoints.add(new GeoPoint(latitude, longitude)); // GeoPoint expects [latitude, longitude]
+                            }
+
+                            // Step 2: Create a Polyline
+                            if (routeLine != null){
+                                mapView.getOverlays().remove(routeLine);
+                                routeLine = null;
+                            }
+                            routeLine = new Polyline();
+                            routeLine.setPoints(geoPoints);
+                            routeLine.setColor(Color.BLUE);  // Set the line color
+                            routeLine.setWidth(8.0f);        // Set the line width
+
+                            // Step 3: Add the Polyline to the MapView
+                            m.getOverlayManager().add(routeLine);
+
+                            BoundingBox boundingBox = BoundingBox.fromGeoPoints(geoPoints);
+                            mapView.zoomToBoundingBox(boundingBox, true);
+
+                            // Refresh the MapView to display the route
+                            m.invalidate();
+                        });
+                    }
+                }
+
+            } catch (IOException | JSONException e) {
+                throw new RuntimeException(e);
+            }
+        }).start();
+
+    }
+
+
+
+
+
+//    TOOLS
 // convert JSONArray landmarks to List<Landmarks>
     private List<Landmarks> parseJSONArrayUsingGson(String jsonArrayString) {
         Gson gson = new Gson();
@@ -308,15 +512,19 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
         return gson.fromJson(jsonArrayString, listType);
     }
 
-
-    // convert JSONObject landmarks to List<Landmarks>
+    // convert JSONObject landmark to Landmark object
     private Landmarks parseJSONObjectUsingGson(String jsonObjectString) {
         Gson gson = new Gson();
         Type type = new TypeToken<Landmarks>() {}.getType();
         return gson.fromJson(jsonObjectString, type);
     }
 
-
+    // convert JSONObject to Route object
+    private Routes parseJSONObjecttoRoute(String jsonObjectString) {
+        Gson gson = new Gson();
+        Type type = new TypeToken<Routes>() {}.getType();
+        return gson.fromJson(jsonObjectString, type);
+    }
 
     // Method to add landmarks from the DB to the Map
     private void addDBlandmarksToMap(MapView displayedMap, String name, double latitude, double longitude) {
@@ -358,18 +566,31 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
         displayedMap.invalidate(); // Refreshes the map
     }
 
-    private void performSearch (String query, String token, MapView map){
+    // Method to perform normal search
+    private void performSearch (String query, String token, MapView map, OnMarkerAddedCallback callback){
         try {
-            searchLandmarkAPI("api/landmark/search", query, token, map);
+            searchLandmarkAPI("api/landmark/search", query, token, map, "search", callback);
         } catch (IOException | JSONException | NullPointerException e) {
             throw new RuntimeException(e);
         }
     }
 
+    // Method to perform "From" location search
+    private void performFromLocate (String query, String token, MapView map, OnMarkerAddedCallback callback){
+        try {
+            searchLandmarkAPI("api/landmark/search", query, token, map, "fromLocate", callback);
+        } catch (IOException | JSONException | NullPointerException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-    private String[] splitTextIntoLines(String text, int maxCharsPerLine) {
-        // Breaks text into lines of maxCharsPerLine characters
-        return TextUtils.split(text, "(?<=\\G.{" + maxCharsPerLine + "})");
+    // Method to perform "To" location search
+    private void performToLocate (String query, String token, MapView map, OnMarkerAddedCallback callback){
+        try {
+            searchLandmarkAPI("api/landmark/search", query, token, map, "toLocate", callback);
+        } catch (IOException | JSONException | NullPointerException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     OkHttpClient getUnsafeOkHttpClient() {
@@ -410,9 +631,18 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
         }
     }
 
-    private void addSearchMarkerToMap(MapView mapView, String name, double latitude, double longitude) {
+//    Methods for adding markers
+    private void addSearchMarkerToMap(MapView mapView, String name, double latitude, double longitude, OnMarkerAddedCallback callback) {
         if (searchMarker != null) {
             mapView.getOverlays().remove(searchMarker);
+        }
+
+        if (fromMarker != null) {
+            mapView.getOverlays().remove(fromMarker);
+        }
+
+        if (toMarker != null) {
+            mapView.getOverlays().remove(toMarker);
         }
 
         searchMarker = new Marker(mapView);
@@ -421,6 +651,59 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
         searchMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
         mapView.getOverlays().add(searchMarker);
         mapView.invalidate(); // Refresh the map
+
+        // Notify the callback
+        if (callback != null) {
+            callback.onMarkerAdded(fromMarker);
+        }
+    }
+
+    private void addfromMarkerToMap(MapView mapView, String name, double latitude, double longitude, OnMarkerAddedCallback callback) {
+        if (fromMarker != null) {
+            mapView.getOverlays().remove(fromMarker);
+        }
+
+        if (searchMarker != null) {
+            mapView.getOverlays().remove(searchMarker);
+        }
+
+        fromMarker = new Marker(mapView);
+        fromMarker.setPosition(new GeoPoint(latitude, longitude));
+        fromMarker.setTitle(name);
+        fromMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+        mapView.getOverlays().add(fromMarker);
+        mapView.invalidate(); // Refresh the map
+
+        // Notify the callback
+        if (callback != null) {
+            callback.onMarkerAdded(fromMarker);
+        }
+    }
+
+    private void addtoMarkerToMap(MapView mapView, String name, double latitude, double longitude, OnMarkerAddedCallback callback) {
+        if (toMarker != null) {
+            mapView.getOverlays().remove(toMarker);
+        }
+
+        if (searchMarker != null) {
+            mapView.getOverlays().remove(searchMarker);
+        }
+
+        toMarker = new Marker(mapView);
+        toMarker.setPosition(new GeoPoint(latitude, longitude));
+        toMarker.setTitle(name);
+        toMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+        mapView.getOverlays().add(toMarker);
+        mapView.invalidate(); // Refresh the map
+
+        // Notify the callback
+        if (callback != null) {
+            callback.onMarkerAdded(toMarker);
+        }
+    }
+
+    public interface OnMarkerAddedCallback {
+        void onMarkerAdded(Marker marker);
     }
 
 }
