@@ -4,25 +4,38 @@ import static io.kamzy.futolocate.Tools.Tools.baseURL;
 import static io.kamzy.futolocate.Tools.Tools.prepGetRequestWithoutBody;
 
 import android.content.Context;
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.drawable.BitmapDrawable;
+import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Looper;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
 import com.google.android.material.textfield.TextInputEditText;
@@ -72,8 +85,12 @@ public class Dashboard extends AppCompatActivity {
     String token, fromLocation, toLocation;
     TextInputLayout searchTextInputLayout, fromTextInputLayout, toTextInputLayout;
     TextInputEditText searchEditText, fromEditText, toEditText;
-    Marker searchMarker, fromMarker, toMarker;
+    Marker searchMarker, fromMarker, toMarker, currentLocationMarker;
     Polyline routeLine;
+    private static final int LOCATION_PERMISSION_REQUEST = 100;
+    private FusedLocationProviderClient fusedLocationClient;
+    private LocationCallback locationCallback;
+    GeoPoint futoLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,6 +113,8 @@ public class Dashboard extends AppCompatActivity {
         searchEditText = findViewById(R.id.searchEditText);
         fromEditText = findViewById(R.id.fromLocationEditText);
         toEditText = findViewById(R.id.toLocationEditText);
+        // Initialize FusedLocationProviderClient
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
 
 
@@ -111,7 +130,7 @@ public class Dashboard extends AppCompatActivity {
         mapView.setMultiTouchControls(true);
         mapView.getController().setZoom(17.0);
         mapView.setTileSource(TileSourceFactory.MAPNIK);
-        GeoPoint futoLocation = new GeoPoint(5.3792, 6.9974);
+        futoLocation = new GeoPoint(5.3792, 6.9974);
         mapView.getController().setCenter(futoLocation);
 
 //        get Landmarks from DB
@@ -121,9 +140,13 @@ public class Dashboard extends AppCompatActivity {
             throw new RuntimeException(e);
         }
 
+
+        setupLocationCallback();     // Initialize the callback
+
         // Floating Action Button
         findViewById(R.id.fab_locate).setOnClickListener(v -> {
-            // Handle FAB click
+            requestLocationPermission(); // Ensure permissions are granted
+            startLocationUpdates();      // Start receiving location updates
         });
 
         findViewById(R.id.fab_navigate).setOnClickListener(v -> {
@@ -317,10 +340,10 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
                                             Log.i("Name: ", l.getName());
                                             // Center map on found location
                                             GeoPoint geoPoint = new GeoPoint(l.getLatitude(), l.getLongitude());
-                                            m.getController().setCenter(geoPoint);
-                                            m.getController().setZoom(18.0);
                                             // Optionally add a marker
                                             addSearchMarkerToMap(m, l.getName(), l.getLatitude(), l.getLongitude(), callback);
+                                            m.getController().setCenter(geoPoint);
+                                            m.getController().setZoom(18.0);
                                         });
                                         break;
                                     case "fromLocate":
@@ -395,9 +418,10 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
                                         runOnUiThread(() -> {
                                             Log.i("Name: ", query);
                                             GeoPoint geoPoint = new GeoPoint(lat, lon);
+                                            addSearchMarkerToMap(map, query, lat, lon, callback);
                                             map.getController().setCenter(geoPoint);
                                             map.getController().setZoom(18.0);
-                                            addSearchMarkerToMap(map, query, lat, lon, callback);
+
                                         });
                                         break;
                                     case "fromLocate":
@@ -644,6 +668,16 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
         if (toMarker != null) {
             mapView.getOverlays().remove(toMarker);
         }
+        if (routeLine != null){
+            mapView.getOverlays().remove(routeLine);
+            routeLine = null;
+        }
+
+        // Remove the old marker, if it exists
+        if (currentLocationMarker != null) {
+            mapView.getOverlays().remove(currentLocationMarker);
+        }
+
 
         searchMarker = new Marker(mapView);
         searchMarker.setPosition(new GeoPoint(latitude, longitude));
@@ -665,6 +699,11 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
 
         if (searchMarker != null) {
             mapView.getOverlays().remove(searchMarker);
+        }
+
+        // Remove the old marker, if it exists
+        if (currentLocationMarker != null) {
+            mapView.getOverlays().remove(currentLocationMarker);
         }
 
         fromMarker = new Marker(mapView);
@@ -689,6 +728,12 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
             mapView.getOverlays().remove(searchMarker);
         }
 
+        // Remove the old marker, if it exists
+        if (currentLocationMarker != null) {
+            mapView.getOverlays().remove(currentLocationMarker);
+        }
+
+
         toMarker = new Marker(mapView);
         toMarker.setPosition(new GeoPoint(latitude, longitude));
         toMarker.setTitle(name);
@@ -704,6 +749,108 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
 
     public interface OnMarkerAddedCallback {
         void onMarkerAdded(Marker marker);
+    }
+
+    private void requestLocationPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    LOCATION_PERMISSION_REQUEST);
+        } else {
+            getCurrentLocation();
+            startLocationUpdates();
+        }
+    }
+
+    private void getCurrentLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationClient.getLastLocation()
+                    .addOnSuccessListener(this, location -> {
+                        if (location != null) {
+                            updateLocationOnMap(location);
+                        } else {
+                            Toast.makeText(this, "Unable to get current location", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+        }
+    }
+
+    private void startLocationUpdates() {
+        // Create a LocationRequest instance using the Builder
+        LocationRequest locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
+                .setMinUpdateIntervalMillis(2000) // Minimum update interval
+                .build();
+
+        // Check location permission before requesting updates
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
+        } else {
+            // Request location permission if not already granted
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST);
+        }
+    }
+
+    private void setupLocationCallback() {
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                if (locationResult == null) {
+                    return;
+                }
+                for (Location location : locationResult.getLocations()) {
+                    if (location != null) {
+                        // Handle location updates
+                        Log.d("Location Update", "Lat: " + location.getLatitude() + ", Lng: " + location.getLongitude());
+                    }
+                }
+            }
+        };
+    }
+
+    private void updateLocationOnMap(Location location) {
+        GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
+
+        // Remove the old marker, if it exists
+        if (currentLocationMarker != null) {
+            mapView.getOverlays().remove(currentLocationMarker);
+        }
+
+        // Add new marker for current location
+        currentLocationMarker = new Marker(mapView);
+        currentLocationMarker.setPosition(geoPoint);
+        currentLocationMarker.setTitle("You are here");
+        currentLocationMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+        mapView.getOverlays().add(currentLocationMarker);
+
+        // Center the map on the current location
+        mapView.getController().setCenter(geoPoint);
+        mapView.invalidate(); // Refresh the map
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == LOCATION_PERMISSION_REQUEST) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                getCurrentLocation();
+                startLocationUpdates();
+            } else {
+                Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Stop location updates to conserve battery
+        if (fusedLocationClient != null) {
+            fusedLocationClient.removeLocationUpdates(locationCallback);
+        }
     }
 
 }
