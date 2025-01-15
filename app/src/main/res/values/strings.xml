@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">FUTO LOCATE</string>
+    <string name="your_location">Your Location</string>
 </resources>

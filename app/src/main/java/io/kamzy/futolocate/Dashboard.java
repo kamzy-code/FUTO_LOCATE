@@ -10,7 +10,10 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
@@ -19,6 +22,7 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import android.widget.Switch;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -36,6 +40,8 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
 import com.google.android.material.textfield.TextInputEditText;
@@ -82,7 +88,7 @@ public class Dashboard extends AppCompatActivity {
     Context ctx;
     BottomNavigationView bottomNav;
     OkHttpClient client = new OkHttpClient();
-    String token, fromLocation, toLocation;
+    String token, fromLocation, toLocation, getLocationAction;
     TextInputLayout searchTextInputLayout, fromTextInputLayout, toTextInputLayout;
     TextInputEditText searchEditText, fromEditText, toEditText;
     Marker searchMarker, fromMarker, toMarker, currentLocationMarker;
@@ -115,7 +121,7 @@ public class Dashboard extends AppCompatActivity {
         toEditText = findViewById(R.id.toLocationEditText);
         // Initialize FusedLocationProviderClient
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-
+        getLocationAction = "default";
 
 
 //        Initialize Map
@@ -140,13 +146,16 @@ public class Dashboard extends AppCompatActivity {
             throw new RuntimeException(e);
         }
 
-
-        setupLocationCallback();     // Initialize the callback
+        setupLocationCallback(getLocationAction);     // Initialize the callback
+        requestLocationPermission(getLocationAction); // Ensure permissions are granted
+        startLocationUpdates();      // Start receiving location updates
 
         // Floating Action Button
         findViewById(R.id.fab_locate).setOnClickListener(v -> {
-            requestLocationPermission(); // Ensure permissions are granted
-            startLocationUpdates();      // Start receiving location updates
+            getLocationAction = "fabLocateClick";
+            setupLocationCallback(getLocationAction);
+            requestLocationPermission(getLocationAction); // Ensure permissions are granted
+//            startLocationUpdates();      // Start receiving location updates
         });
 
         findViewById(R.id.fab_navigate).setOnClickListener(v -> {
@@ -156,6 +165,7 @@ public class Dashboard extends AppCompatActivity {
                 searchTextInputLayout.setVisibility(View.GONE);
                 fromTextInputLayout.setVisibility(View.VISIBLE);
                 toTextInputLayout.setVisibility(View.VISIBLE);
+                fromEditText.setText(R.string.your_location);
             } else {
                 // Revert to normal search field
                 searchTextInputLayout.setVisibility(View.VISIBLE);
@@ -182,7 +192,8 @@ public class Dashboard extends AppCompatActivity {
             toLocation = toEditText.getText().toString();
 
             if (!fromLocation.isEmpty() && !toLocation.isEmpty()) {
-                performFromLocate(fromLocation, token, mapView, fromMarker -> {
+                if (fromLocation.equals("Your Location")){
+                    requestLocationPermission("fromNavigate");
                     performToLocate(toLocation, token, mapView, toMarker -> {
                         if (fromMarker != null && toMarker != null) {
                             GeoPoint fromLocationData = fromMarker.getPosition();
@@ -204,7 +215,55 @@ public class Dashboard extends AppCompatActivity {
                             }
                         }
                     });
-                });
+                } else if (toLocation.equals("Your Location")) {
+                    requestLocationPermission("toNavigate");
+                    performFromLocate(fromLocation, token, mapView, fromMarker -> {
+                            if (fromMarker != null && toMarker != null) {
+                                GeoPoint fromLocationData = fromMarker.getPosition();
+                                GeoPoint toLocationData = toMarker.getPosition();
+
+                                try {
+                                    getRouteAPI(
+                                            "api/navigation/routes/create",
+                                            String.valueOf(fromLocationData.getLatitude()),
+                                            String.valueOf(fromLocationData.getLongitude()),
+                                            String.valueOf(toLocationData.getLatitude()),
+                                            String.valueOf(toLocationData.getLongitude()),
+                                            String.valueOf(ModeOfTransport.walking),
+                                            token,
+                                            mapView
+                                    );
+                                } catch (IOException | JSONException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                    });
+                } else {
+                    performFromLocate(fromLocation, token, mapView, fromMarker -> {
+                        performToLocate(toLocation, token, mapView, toMarker -> {
+                            if (fromMarker != null && toMarker != null) {
+                                GeoPoint fromLocationData = fromMarker.getPosition();
+                                GeoPoint toLocationData = toMarker.getPosition();
+
+                                try {
+                                    getRouteAPI(
+                                            "api/navigation/routes/create",
+                                            String.valueOf(fromLocationData.getLatitude()),
+                                            String.valueOf(fromLocationData.getLongitude()),
+                                            String.valueOf(toLocationData.getLatitude()),
+                                            String.valueOf(toLocationData.getLongitude()),
+                                            String.valueOf(ModeOfTransport.walking),
+                                            token,
+                                            mapView
+                                    );
+                                } catch (IOException | JSONException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+                    });
+
+                }
 
                 return true;
             }
@@ -216,7 +275,8 @@ public class Dashboard extends AppCompatActivity {
             toLocation = toEditText.getText().toString();
 
             if (!fromLocation.isEmpty() && !toLocation.isEmpty()) {
-                performFromLocate(fromLocation, token, mapView, fromMarker -> {
+                if (fromLocation.equals("Your Location")){
+                    requestLocationPermission("fromNavigate");
                     performToLocate(toLocation, token, mapView, toMarker -> {
                         if (fromMarker != null && toMarker != null) {
                             GeoPoint fromLocationData = fromMarker.getPosition();
@@ -238,7 +298,55 @@ public class Dashboard extends AppCompatActivity {
                             }
                         }
                     });
-                });
+                } else if (toLocation.equals("Your Location")) {
+                    requestLocationPermission("toNavigate");
+                    performFromLocate(fromLocation, token, mapView, fromMarker -> {
+                        if (fromMarker != null && toMarker != null) {
+                            GeoPoint fromLocationData = fromMarker.getPosition();
+                            GeoPoint toLocationData = toMarker.getPosition();
+
+                            try {
+                                getRouteAPI(
+                                        "api/navigation/routes/create",
+                                        String.valueOf(fromLocationData.getLatitude()),
+                                        String.valueOf(fromLocationData.getLongitude()),
+                                        String.valueOf(toLocationData.getLatitude()),
+                                        String.valueOf(toLocationData.getLongitude()),
+                                        String.valueOf(ModeOfTransport.walking),
+                                        token,
+                                        mapView
+                                );
+                            } catch (IOException | JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                } else {
+                    performFromLocate(fromLocation, token, mapView, fromMarker -> {
+                        performToLocate(toLocation, token, mapView, toMarker -> {
+                            if (fromMarker != null && toMarker != null) {
+                                GeoPoint fromLocationData = fromMarker.getPosition();
+                                GeoPoint toLocationData = toMarker.getPosition();
+
+                                try {
+                                    getRouteAPI(
+                                            "api/navigation/routes/create",
+                                            String.valueOf(fromLocationData.getLatitude()),
+                                            String.valueOf(fromLocationData.getLongitude()),
+                                            String.valueOf(toLocationData.getLatitude()),
+                                            String.valueOf(toLocationData.getLongitude()),
+                                            String.valueOf(ModeOfTransport.walking),
+                                            token,
+                                            mapView
+                                    );
+                                } catch (IOException | JSONException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+                    });
+
+                }
 
                 return true;
             }
@@ -673,11 +781,6 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
             routeLine = null;
         }
 
-        // Remove the old marker, if it exists
-        if (currentLocationMarker != null) {
-            mapView.getOverlays().remove(currentLocationMarker);
-        }
-
 
         searchMarker = new Marker(mapView);
         searchMarker.setPosition(new GeoPoint(latitude, longitude));
@@ -699,11 +802,6 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
 
         if (searchMarker != null) {
             mapView.getOverlays().remove(searchMarker);
-        }
-
-        // Remove the old marker, if it exists
-        if (currentLocationMarker != null) {
-            mapView.getOverlays().remove(currentLocationMarker);
         }
 
         fromMarker = new Marker(mapView);
@@ -728,12 +826,6 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
             mapView.getOverlays().remove(searchMarker);
         }
 
-        // Remove the old marker, if it exists
-        if (currentLocationMarker != null) {
-            mapView.getOverlays().remove(currentLocationMarker);
-        }
-
-
         toMarker = new Marker(mapView);
         toMarker.setPosition(new GeoPoint(latitude, longitude));
         toMarker.setTitle(name);
@@ -751,25 +843,36 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
         void onMarkerAdded(Marker marker);
     }
 
-    private void requestLocationPermission() {
+    private void requestLocationPermission(String action) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     LOCATION_PERMISSION_REQUEST);
         } else {
-            getCurrentLocation();
-            startLocationUpdates();
+            switch (action){
+                case "fromNavigate":
+                case "toNavigate":
+                    getCurrentLocation(action);
+                    break;
+                case "fabLocateClick":
+                    getCurrentLocation(action);
+                    break;
+                default:
+                    getCurrentLocation(action);
+                    startLocationUpdates();
+                    break;
+            }
         }
     }
 
-    private void getCurrentLocation() {
+    private void getCurrentLocation(String action) {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             fusedLocationClient.getLastLocation()
                     .addOnSuccessListener(this, location -> {
                         if (location != null) {
-                            updateLocationOnMap(location);
+                            updateLocationOnMap(location, action);
                         } else {
                             Toast.makeText(this, "Unable to get current location", Toast.LENGTH_SHORT).show();
                         }
@@ -794,7 +897,7 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
         }
     }
 
-    private void setupLocationCallback() {
+    private void setupLocationCallback(String action) {
         locationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
@@ -804,6 +907,7 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
                 for (Location location : locationResult.getLocations()) {
                     if (location != null) {
                         // Handle location updates
+                        updateLocationOnMap(location, action);
                         Log.d("Location Update", "Lat: " + location.getLatitude() + ", Lng: " + location.getLongitude());
                     }
                 }
@@ -811,24 +915,82 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
         };
     }
 
-    private void updateLocationOnMap(Location location) {
+    private void updateLocationOnMap(Location location, String action) {
         GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
-
         // Remove the old marker, if it exists
         if (currentLocationMarker != null) {
             mapView.getOverlays().remove(currentLocationMarker);
         }
 
-        // Add new marker for current location
-        currentLocationMarker = new Marker(mapView);
-        currentLocationMarker.setPosition(geoPoint);
-        currentLocationMarker.setTitle("You are here");
-        currentLocationMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
-        mapView.getOverlays().add(currentLocationMarker);
 
-        // Center the map on the current location
-        mapView.getController().setCenter(geoPoint);
-        mapView.invalidate(); // Refresh the map
+        switch (action){
+            case "fromNavigate":
+                if (fromMarker != null) {
+                    mapView.getOverlays().remove(fromMarker);
+                }
+                if (searchMarker != null) {
+                    mapView.getOverlays().remove(searchMarker);
+                }
+
+                fromMarker = new Marker(mapView);
+                fromMarker.setPosition(geoPoint);
+                fromMarker.setTitle("Your Location");
+                fromMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+                mapView.getOverlays().add(fromMarker);
+                mapView.invalidate(); // Refresh the map
+                break;
+            case "toNavigate":
+                if (toMarker != null) {
+                    mapView.getOverlays().remove(toMarker);
+                }
+
+                if (searchMarker != null) {
+                    mapView.getOverlays().remove(searchMarker);
+                }
+
+                toMarker = new Marker(mapView);
+                toMarker.setPosition(new GeoPoint(location.getLatitude(), location.getLongitude()));
+                toMarker.setTitle("Your Location");
+                toMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+                mapView.getOverlays().add(toMarker);
+                mapView.invalidate(); // Refresh the map
+                break;
+            default:
+                // Add new marker for current location
+                currentLocationMarker = new Marker(mapView);
+                currentLocationMarker.setPosition(geoPoint);
+                currentLocationMarker.setTitle("You are here");
+                currentLocationMarker.setIcon(getColoredMarkerIcon(R.drawable.current_location_marker, Color.BLUE));
+                currentLocationMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+                mapView.getOverlays().add(currentLocationMarker);
+
+                switch (action){
+                    case "fabLocateClick":
+                        // Center the map on the current location
+                        mapView.getController().setCenter(geoPoint);
+                        mapView.invalidate(); // Refresh the map
+                        break;
+                    default:
+                        // Center the map on the current location
+                        mapView.invalidate(); // Refresh the map
+                        break;
+                }
+                break;
+        }
+    }
+
+    private Drawable getColoredMarkerIcon(int drawableResId, int colorValue) {
+        // Retrieve the drawable resource
+        Drawable drawable = ContextCompat.getDrawable(this, drawableResId);
+        if (drawable == null) return null;
+
+        // Apply the color filter directly with the provided color value
+        drawable.setColorFilter(new PorterDuffColorFilter(
+                colorValue, // This is the actual color value (e.g., 0xff0000ff)
+                PorterDuff.Mode.SRC_IN
+        ));
+
+        return drawable;
     }
 
     @Override
@@ -836,7 +998,6 @@ private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) 
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == LOCATION_PERMISSION_REQUEST) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                getCurrentLocation();
                 startLocationUpdates();
             } else {
                 Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show();
