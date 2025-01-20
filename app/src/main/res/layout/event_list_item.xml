@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:layout_marginBottom="5dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        >
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_weight="@integer/material_motion_duration_long_1"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_gravity="left">
+            <TextView
+                android:id="@+id/listEventName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Add Event"
+                android:textSize="18sp"
+                android:gravity="left"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="#171D29" />
+
+            <TextView
+                android:id="@+id/listEventdescription"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Add Event"
+                android:textSize="14sp"
+                android:gravity="left"
+                android:textStyle="normal"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="#171D29" />
+
+            <TextView
+                android:id="@+id/listEventLocation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Add Event"
+                android:textSize="14sp"
+                android:gravity="left"
+                android:textStyle="bold"
+                android:layout_marginTop="8dp"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="#2B943F" />
+        </LinearLayout>
+        <ImageButton
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:src="@drawable/navigate"
+            android:id="@+id/listNavigateButton"
+            style="@style/Widget.Material3.MaterialTimePicker.ImageButton"
+            android:backgroundTint="#CAE4CF"/>
+    </LinearLayout>
+
+
+</LinearLayout>

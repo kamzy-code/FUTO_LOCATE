@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/landmark_click_dialogue_container"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="25dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_weight="1"
+                android:id="@+id/LandmarkTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Add Event"
+                android:textSize="32sp"
+                android:gravity="left"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="#171D29" />
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/close_button"
+                android:src="@drawable/close"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/Landmarkdescription"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Add Event"
+            android:textSize="18sp"
+            android:gravity="left"
+            android:textStyle="normal"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="#171D29" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:layout_width="wrap_content"
+                android:layout_height="50dp"
+                android:id="@+id/navigate_button"
+                android:text="Navigate"
+                android:layout_marginTop="10dp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                android:textSize="16sp"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:textColor="#2B943F"
+                app:strokeColor="#2B943F">
+            </com.google.android.material.button.MaterialButton>
+
+            <com.google.android.material.button.MaterialButton
+                android:layout_width="wrap_content"
+                android:layout_height="50dp"
+                android:id="@+id/addEvent_button"
+                android:text="Add Event"
+                android:layout_marginTop="10dp"
+                android:textStyle="bold"
+                android:layout_marginStart="10dp"
+                android:fontFamily="sans-serif-medium"
+                android:textSize="16sp"
+                android:backgroundTint="#2B943F">
+            </com.google.android.material.button.MaterialButton>
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>

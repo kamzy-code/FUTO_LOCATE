@@ -14,6 +14,9 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
+import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
@@ -30,6 +33,11 @@ public class Dashboard extends AppCompatActivity {
     BottomNavigationView bottomNav;
     private FragmentManager fragmentManager;
     String token, email;
+    private Fragment exploreFragment = new ExploreFragment();
+    private  Fragment landmarkFragment = new LandmarkFragment();
+    private  Fragment eventFragment = new EventFragment();
+    private  Fragment profileFragment = new ProfileFragment();
+    private Fragment activeFragment;
     Fragment fragment;
 //    OkHttpClient client = new OkHttpClient();
 //    String token, fromLocation, toLocation, getLocationAction;
@@ -67,9 +75,19 @@ public class Dashboard extends AppCompatActivity {
 
         // Set default fragment
         getSupportFragmentManager().beginTransaction()
-                .replace(R.id.fragment_container, new ExploreFragment())
+                .add(R.id.fragment_container, exploreFragment, "Explore")
+                .commit();
+        getSupportFragmentManager().beginTransaction()
+                .add(R.id.fragment_container, landmarkFragment, "Landmark").hide(landmarkFragment)
+                .commit();
+        getSupportFragmentManager().beginTransaction()
+                .add(R.id.fragment_container, eventFragment, "Event").hide(eventFragment)
+                .commit();
+        getSupportFragmentManager().beginTransaction()
+                .add(R.id.fragment_container, profileFragment, "Profile").hide(profileFragment)
                 .commit();
 
+        activeFragment = exploreFragment;
 //        mapView = findViewById(R.id.map_view);
 //        searchTextInputLayout = findViewById(R.id.searchTextInputLayout);
 //        fromTextInputLayout = findViewById(R.id.fromTextInputLayout);
@@ -336,22 +354,48 @@ public class Dashboard extends AppCompatActivity {
     private Fragment getFragmentForMenuItem(@NonNull MenuItem item) {
         int itemId = item.getItemId();
         if (itemId == R.id.nav_explore) {
-            return new ExploreFragment();
+            return exploreFragment;
         } else if (itemId == R.id.nav_landmarks) {
-            return new LandmarkFragment();
+            return landmarkFragment;
         } else if (itemId == R.id.history) {
-            return new EventFragment();
+            return eventFragment;
         } else if (itemId == R.id.profile) {
-            return new ProfileFragment();
+            return profileFragment;
         } else {
             return null;
         }
     }
 
     private void showFragment(Fragment fragment) {
-        FragmentTransaction transaction = fragmentManager.beginTransaction();
-        transaction.replace(R.id.fragment_container, fragment);
-        transaction.commit();
+//        FragmentTransaction transaction = fragmentManager.beginTransaction();
+//        transaction.replace(R.id.fragment_container, fragment)
+//                .addToBackStack(null);
+//        transaction.commit();
+
+        getSupportFragmentManager().beginTransaction().hide(activeFragment).show(fragment).commit();
+        activeFragment = fragment;
+    }
+
+    // Method to programmatically switch tabs and pass data
+    public void navigateToExplore(double latitude, double longitude, String eventName, String eventLocation) {
+        // Select the Explore tab
+        bottomNav.setSelectedItemId(R.id.nav_explore);
+
+        // Pass data to ExploreFragment
+        Bundle bundle = new Bundle();
+        bundle.putDouble("latitude", latitude);
+        bundle.putDouble("longitude", longitude);
+        bundle.putString("eventName", eventName);
+        bundle.putString("eventLocation", eventLocation);
+
+        // Replace ExploreFragment with arguments
+        exploreFragment = new ExploreFragment();
+        getSupportFragmentManager().beginTransaction()
+                .add(R.id.fragment_container, exploreFragment, "Explore")
+                .commit();
+        exploreFragment.setArguments(bundle);
+
+        showFragment(exploreFragment);
     }
 
 //    @Override

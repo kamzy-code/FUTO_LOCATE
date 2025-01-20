@@ -33,6 +33,8 @@ import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -50,6 +52,7 @@ import com.google.gson.reflect.TypeToken;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.osmdroid.api.IMapController;
 import org.osmdroid.config.Configuration;
 import org.osmdroid.events.MapEventsReceiver;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
@@ -105,6 +108,8 @@ public class ExploreFragment extends Fragment {
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
     GeoPoint futoLocation;
+    TokenSharedViewModel tokenSharedViewModel;
+
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -176,14 +181,17 @@ public class ExploreFragment extends Fragment {
         }
         Configuration.getInstance().setOsmdroidTileCache(cacheDir);
 
-        mapView.setMultiTouchControls(true);
         mapView.getController().setZoom(17.0);
         mapView.setTileSource(TileSourceFactory.MAPNIK);
         futoLocation = new GeoPoint(5.3792, 6.9974);
         mapView.getController().setCenter(futoLocation);
+        mapView.setMultiTouchControls(true);
 
-        // Add the long press listener
-        addLongPressListener();
+        tokenSharedViewModel = new ViewModelProvider(requireActivity()).get(TokenSharedViewModel.class);
+        tokenSharedViewModel.getData().observe(getViewLifecycleOwner(), value ->{
+            // Add the long press listener
+            addLongPressListener(value);
+        } );
 
         // Inflate the layout for this fragment
         return view;
@@ -193,9 +201,25 @@ public class ExploreFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        TokenSharedViewModel tokenSharedViewModel = new ViewModelProvider(requireActivity()).get(TokenSharedViewModel.class);
+        tokenSharedViewModel = new ViewModelProvider(requireActivity()).get(TokenSharedViewModel.class);
         tokenSharedViewModel.getData().observe(getViewLifecycleOwner(), value -> {
             token = value;
+
+            mapView = view.findViewById(R.id.map_view);
+            //        Initialize Map
+            Configuration.getInstance().setUserAgentValue(requireActivity().getPackageName());
+            // Configure osmdroid
+            File cacheDir = new File(requireActivity().getCacheDir(), "osmdroid_tiles");
+            if (!cacheDir.exists()) {
+                cacheDir.mkdirs();
+            }
+            Configuration.getInstance().setOsmdroidTileCache(cacheDir);
+
+            mapView.getController().setZoom(17.0);
+            mapView.setTileSource(TileSourceFactory.MAPNIK);
+            futoLocation = new GeoPoint(5.3792, 6.9974);
+            mapView.getController().setCenter(futoLocation);
+            mapView.setMultiTouchControls(true);
 
 
 //        get Landmarks from DB
@@ -205,15 +229,29 @@ public class ExploreFragment extends Fragment {
                 throw new RuntimeException(e);
             }
 
-            setupLocationCallback(getLocationAction);     // Initialize the callback
-            requestLocationPermission(getLocationAction); // Ensure permissions are granted
+            setupLocationCallback(getLocationAction, mapView);     // Initialize the callback
+            requestLocationPermission(mapView, getLocationAction); // Ensure permissions are granted
             startLocationUpdates();      // Start receiving location updates
+
+            Bundle bundle = getArguments();
+            if (bundle != null) {
+                double latitude = bundle.getDouble("latitude");
+                double longitude = bundle.getDouble("longitude");
+                String eventName = bundle.getString("eventName");
+                String eventLocation = bundle.getString("eventLocation");
+
+//                // Center the map and add a marker
+//                mapView.getController().setZoom(17.0);
+//                GeoPoint eventGeoPoint = new GeoPoint(latitude, longitude);
+//                mapView.getController().setCenter(eventGeoPoint);
+                performNavigation("Your Location", eventLocation, value);
+            }
 
             // Floating Action Button
             view.findViewById(R.id.fab_locate).setOnClickListener(v -> {
                 getLocationAction = "fabLocateClick";
-                setupLocationCallback(getLocationAction);
-                requestLocationPermission(getLocationAction); // Ensure permissions are granted
+                setupLocationCallback(getLocationAction, mapView);
+                requestLocationPermission(mapView, getLocationAction); // Ensure permissions are granted
 //            startLocationUpdates();      // Start receiving location updates
             });
 
@@ -253,79 +291,7 @@ public class ExploreFragment extends Fragment {
                 toLocation = toEditText.getText().toString();
 
                 if (!fromLocation.isEmpty() && !toLocation.isEmpty()) {
-                    if (fromLocation.equals("Your Location")) {
-                        requestLocationPermission("fromNavigate");
-                        performToLocate(toLocation, token, mapView, toMarker -> {
-                            if (fromMarker != null && toMarker != null) {
-                                GeoPoint fromLocationData = fromMarker.getPosition();
-                                GeoPoint toLocationData = toMarker.getPosition();
-
-                                try {
-                                    getRouteAPI(
-                                            "api/navigation/routes/create",
-                                            String.valueOf(fromLocationData.getLatitude()),
-                                            String.valueOf(fromLocationData.getLongitude()),
-                                            String.valueOf(toLocationData.getLatitude()),
-                                            String.valueOf(toLocationData.getLongitude()),
-                                            String.valueOf(ModeOfTransport.walking),
-                                            token,
-                                            mapView
-                                    );
-                                } catch (IOException | JSONException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        });
-                    } else if (toLocation.equals("Your Location")) {
-                        requestLocationPermission("toNavigate");
-                        performFromLocate(fromLocation, token, mapView, fromMarker -> {
-                            if (fromMarker != null && toMarker != null) {
-                                GeoPoint fromLocationData = fromMarker.getPosition();
-                                GeoPoint toLocationData = toMarker.getPosition();
-
-                                try {
-                                    getRouteAPI(
-                                            "api/navigation/routes/create",
-                                            String.valueOf(fromLocationData.getLatitude()),
-                                            String.valueOf(fromLocationData.getLongitude()),
-                                            String.valueOf(toLocationData.getLatitude()),
-                                            String.valueOf(toLocationData.getLongitude()),
-                                            String.valueOf(ModeOfTransport.walking),
-                                            token,
-                                            mapView
-                                    );
-                                } catch (IOException | JSONException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        });
-                    } else {
-                        performFromLocate(fromLocation, token, mapView, fromMarker -> {
-                            performToLocate(toLocation, token, mapView, toMarker -> {
-                                if (fromMarker != null && toMarker != null) {
-                                    GeoPoint fromLocationData = fromMarker.getPosition();
-                                    GeoPoint toLocationData = toMarker.getPosition();
-
-                                    try {
-                                        getRouteAPI(
-                                                "api/navigation/routes/create",
-                                                String.valueOf(fromLocationData.getLatitude()),
-                                                String.valueOf(fromLocationData.getLongitude()),
-                                                String.valueOf(toLocationData.getLatitude()),
-                                                String.valueOf(toLocationData.getLongitude()),
-                                                String.valueOf(ModeOfTransport.walking),
-                                                token,
-                                                mapView
-                                        );
-                                    } catch (IOException | JSONException e) {
-                                        e.printStackTrace();
-                                    }
-                                }
-                            });
-                        });
-
-                    }
-
+                    performNavigation(fromLocation, toLocation, token);
                     return true;
                 }
                 return false;
@@ -336,79 +302,7 @@ public class ExploreFragment extends Fragment {
                 toLocation = toEditText.getText().toString();
 
                 if (!fromLocation.isEmpty() && !toLocation.isEmpty()) {
-                    if (fromLocation.equals("Your Location")) {
-                        requestLocationPermission("fromNavigate");
-                        performToLocate(toLocation, token, mapView, toMarker -> {
-                            if (fromMarker != null && toMarker != null) {
-                                GeoPoint fromLocationData = fromMarker.getPosition();
-                                GeoPoint toLocationData = toMarker.getPosition();
-
-                                try {
-                                    getRouteAPI(
-                                            "api/navigation/routes/create",
-                                            String.valueOf(fromLocationData.getLatitude()),
-                                            String.valueOf(fromLocationData.getLongitude()),
-                                            String.valueOf(toLocationData.getLatitude()),
-                                            String.valueOf(toLocationData.getLongitude()),
-                                            String.valueOf(ModeOfTransport.walking),
-                                            token,
-                                            mapView
-                                    );
-                                } catch (IOException | JSONException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        });
-                    } else if (toLocation.equals("Your Location")) {
-                        requestLocationPermission("toNavigate");
-                        performFromLocate(fromLocation, token, mapView, fromMarker -> {
-                            if (fromMarker != null && toMarker != null) {
-                                GeoPoint fromLocationData = fromMarker.getPosition();
-                                GeoPoint toLocationData = toMarker.getPosition();
-
-                                try {
-                                    getRouteAPI(
-                                            "api/navigation/routes/create",
-                                            String.valueOf(fromLocationData.getLatitude()),
-                                            String.valueOf(fromLocationData.getLongitude()),
-                                            String.valueOf(toLocationData.getLatitude()),
-                                            String.valueOf(toLocationData.getLongitude()),
-                                            String.valueOf(ModeOfTransport.walking),
-                                            token,
-                                            mapView
-                                    );
-                                } catch (IOException | JSONException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        });
-                    } else {
-                        performFromLocate(fromLocation, token, mapView, fromMarker -> {
-                            performToLocate(toLocation, token, mapView, toMarker -> {
-                                if (fromMarker != null && toMarker != null) {
-                                    GeoPoint fromLocationData = fromMarker.getPosition();
-                                    GeoPoint toLocationData = toMarker.getPosition();
-
-                                    try {
-                                        getRouteAPI(
-                                                "api/navigation/routes/create",
-                                                String.valueOf(fromLocationData.getLatitude()),
-                                                String.valueOf(fromLocationData.getLongitude()),
-                                                String.valueOf(toLocationData.getLatitude()),
-                                                String.valueOf(toLocationData.getLongitude()),
-                                                String.valueOf(ModeOfTransport.walking),
-                                                token,
-                                                mapView
-                                        );
-                                    } catch (IOException | JSONException e) {
-                                        e.printStackTrace();
-                                    }
-                                }
-                            });
-                        });
-
-                    }
-
+                    performNavigation(fromLocation, toLocation, token);
                     return true;
                 }
                 return false;
@@ -417,17 +311,17 @@ public class ExploreFragment extends Fragment {
 
     }
 
-    @Override
-    public void onPause() {
-        super.onPause();
-        mapView.onPause();
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        mapView.onResume();
-    }
+//    @Override
+//    public void onPause() {
+//        super.onPause();
+//        mapView.onPause();
+//    }
+//
+//    @Override
+//    public void onResume() {
+//        super.onResume();
+//        mapView.onResume();
+//    }
 
 
     //  APIs
@@ -444,7 +338,7 @@ public class ExploreFragment extends Fragment {
                         for (Landmarks landmark : allLandmarks){
                             Log.i("Landmarks", "Name: "+ landmark.getName()+ " Lat: " + landmark.getLatitude()+
                                     " Long: " + landmark.getLongitude() + " Cat: " + landmark.getCategory());
-                            addDBlandmarksToMap(map, landmark.getName(), landmark.getLatitude(), landmark.getLongitude());
+                            addDBlandmarksToMap(map, landmark.getName(), landmark.getLatitude(), landmark.getLongitude(), authToken);
                         }
                     });
                 }
@@ -703,7 +597,7 @@ public class ExploreFragment extends Fragment {
     }
 
     // Method to add landmarks from the DB to the Map
-    private void addDBlandmarksToMap(MapView displayedMap, String name, double latitude, double longitude) {
+    private void addDBlandmarksToMap(MapView displayedMap, String name, double latitude, double longitude, String token) {
         // Set up the Paint for the text
         Paint paint = new Paint();
         paint.setColor(android.graphics.Color.BLACK);
@@ -740,6 +634,11 @@ public class ExploreFragment extends Fragment {
         displayedMap.getOverlays().add(marker); // Adds the marker to the map
 
         displayedMap.invalidate(); // Refreshes the map
+
+        marker.setOnMarkerClickListener((marker1, mapView1) -> {
+            showLandmarkClickDialogue(displayedMap,name, latitude, longitude, token);
+            return true;
+        });
     }
 
     // Method to perform normal search
@@ -884,7 +783,7 @@ public class ExploreFragment extends Fragment {
     }
 
 
-    private void requestLocationPermission(String action) {
+    private void requestLocationPermission(MapView mapView, String action) {
         if (ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(requireActivity(),
@@ -894,26 +793,26 @@ public class ExploreFragment extends Fragment {
             switch (action){
                 case "fromNavigate":
                 case "toNavigate":
-                    getCurrentLocation(action);
+                    getCurrentLocation(mapView, action);
                     break;
                 case "fabLocateClick":
-                    getCurrentLocation(action);
+                    getCurrentLocation(mapView, action);
                     break;
                 default:
-                    getCurrentLocation(action);
+                    getCurrentLocation(mapView, action);
                     startLocationUpdates();
                     break;
             }
         }
     }
 
-    private void getCurrentLocation(String action) {
+    private void getCurrentLocation(MapView mapView, String action) {
         if (ActivityCompat.checkSelfPermission(requireContext(), android.Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             fusedLocationClient.getLastLocation()
                     .addOnSuccessListener(location -> {
                         if (location != null) {
-                            updateLocationOnMap(location, action);
+                            updateLocationOnMap(mapView,location, action);
                         } else {
                             Toast.makeText(requireContext(), "Unable to get current location", Toast.LENGTH_SHORT).show();
                         }
@@ -942,7 +841,7 @@ public class ExploreFragment extends Fragment {
         }
     }
 
-    private void setupLocationCallback(String action) {
+    private void setupLocationCallback(String action, MapView mapView) {
         locationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
@@ -952,7 +851,7 @@ public class ExploreFragment extends Fragment {
                 for (Location location : locationResult.getLocations()) {
                     if (location != null) {
                         // Handle location updates
-                        updateLocationOnMap(location, action);
+                        updateLocationOnMap(mapView, location, action);
                         Log.d("Location Update", "Lat: " + location.getLatitude() + ", Lng: " + location.getLongitude());
                     }
                 }
@@ -960,7 +859,12 @@ public class ExploreFragment extends Fragment {
         };
     }
 
-    private void updateLocationOnMap(Location location, String action) {
+    private void updateLocationOnMap(MapView mapView, Location location, String action) {
+        if (mapView == null) {
+            Log.e("ExploreFragment", "MapView is not initialized.");
+            return;
+        }
+
         GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
         // Remove the old marker, if it exists
         if (currentLocationMarker != null) {
@@ -1059,7 +963,81 @@ public class ExploreFragment extends Fragment {
         }
     }
 
-    private void showAddEventMenu(double latitude, double longitude) {
+    public  void performNavigation (String fromLocation, String toLocation, String token){
+        if (fromLocation.equalsIgnoreCase("Your Location")) {
+            requestLocationPermission(mapView, "fromNavigate");
+            performToLocate(toLocation, token, mapView, toMarker -> {
+                if (fromMarker != null && toMarker != null) {
+                    GeoPoint fromLocationData = fromMarker.getPosition();
+                    GeoPoint toLocationData = toMarker.getPosition();
+
+                    try {
+                        getRouteAPI(
+                                "api/navigation/routes/create",
+                                String.valueOf(fromLocationData.getLatitude()),
+                                String.valueOf(fromLocationData.getLongitude()),
+                                String.valueOf(toLocationData.getLatitude()),
+                                String.valueOf(toLocationData.getLongitude()),
+                                String.valueOf(ModeOfTransport.walking),
+                                token,
+                                mapView
+                        );
+                    } catch (IOException | JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        } else if (toLocation.equalsIgnoreCase("Your Location")) {
+            requestLocationPermission(mapView, "toNavigate");
+            performFromLocate(fromLocation, token, mapView, fromMarker -> {
+                if (fromMarker != null && toMarker != null) {
+                    GeoPoint fromLocationData = fromMarker.getPosition();
+                    GeoPoint toLocationData = toMarker.getPosition();
+
+                    try {
+                        getRouteAPI(
+                                "api/navigation/routes/create",
+                                String.valueOf(fromLocationData.getLatitude()),
+                                String.valueOf(fromLocationData.getLongitude()),
+                                String.valueOf(toLocationData.getLatitude()),
+                                String.valueOf(toLocationData.getLongitude()),
+                                String.valueOf(ModeOfTransport.walking),
+                                token,
+                                mapView
+                        );
+                    } catch (IOException | JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        } else {
+            performFromLocate(fromLocation, token, mapView, fromMarker -> {
+                performToLocate(toLocation, token, mapView, toMarker -> {
+                    if (fromMarker != null && toMarker != null) {
+                        GeoPoint fromLocationData = fromMarker.getPosition();
+                        GeoPoint toLocationData = toMarker.getPosition();
+
+                        try {
+                            getRouteAPI(
+                                    "api/navigation/routes/create",
+                                    String.valueOf(fromLocationData.getLatitude()),
+                                    String.valueOf(fromLocationData.getLongitude()),
+                                    String.valueOf(toLocationData.getLatitude()),
+                                    String.valueOf(toLocationData.getLongitude()),
+                                    String.valueOf(ModeOfTransport.walking),
+                                    token,
+                                    mapView
+                            );
+                        } catch (IOException | JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            });
+        }
+    }
+
+    public void showAddEventMenu(String location, double latitude, double longitude, String token) {
         // Use Fragment's context for the BottomSheetDialog
         BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(requireContext());
 
@@ -1073,7 +1051,7 @@ public class ExploreFragment extends Fragment {
         EditText eventNameInput = bottomSheetView.findViewById(R.id.eventName);
         EditText eventDescriptionInput = bottomSheetView.findViewById(R.id.eventDescription);
         EditText eventLocationInput = bottomSheetView.findViewById(R.id.eventLocation);
-        EditText eventTimeInput = bottomSheetView.findViewById(R.id.eventTime);
+        eventLocationInput.setText(location);
         Button saveEventButton = bottomSheetView.findViewById(R.id.saveEventButton);
 
         // Set Save button click listener
@@ -1081,16 +1059,14 @@ public class ExploreFragment extends Fragment {
             String eventName = eventNameInput.getText().toString().trim();
             String eventDescription = eventDescriptionInput.getText().toString().trim();
             String eventLocation = eventLocationInput.getText().toString().trim();
-            String eventTime = eventTimeInput.getText().toString().trim();
 
             if (eventName.isEmpty()) eventNameInput.setError("This field is required");
             if (eventDescription.isEmpty()) eventDescriptionInput.setError("This field is required");
             if (eventLocation.isEmpty()) eventLocationInput.setError("This field is required");
-            if (eventTime.isEmpty()) eventTimeInput.setError("This field is required");
 
-            if (!eventName.isEmpty() && !eventDescription.isEmpty() && !eventLocation.isEmpty() && !eventTime.isEmpty()){
+            if (!eventName.isEmpty() && !eventDescription.isEmpty() && !eventLocation.isEmpty()){
                 // Send event details to the backend
-                createEventAPI("/api/auth/profile", eventName, eventDescription, eventLocation, eventTime, String.valueOf(latitude), String.valueOf(longitude));
+                createEventAPI("api/auth/profile", eventName, eventDescription, eventLocation, String.valueOf(latitude), String.valueOf(longitude), token);
 
                 // Dismiss the dialog after saving
                 bottomSheetDialog.dismiss();
@@ -1102,6 +1078,48 @@ public class ExploreFragment extends Fragment {
         // Set the content view for the dialog and show it
         bottomSheetDialog.setContentView(bottomSheetView);
         bottomSheetDialog.show();
+    }
+
+    private void showLandmarkClickDialogue(MapView map, String toLocation, double latitude, double longitude, String token) {
+        // Use Fragment's context for the BottomSheetDialog
+        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(requireContext());
+
+        // Inflate the custom layout for the bottom sheet
+        View bottomSheetView = LayoutInflater.from(getContext()).inflate(
+                R.layout.location_click_dialogue, // Custom layout file
+                requireActivity().findViewById(R.id.landmark_click_dialogue_container) // Root container from the layout
+        );
+
+        // Initialize input fields and buttons in the layout
+        TextView LandmarkTitle = bottomSheetView.findViewById(R.id.LandmarkTitle);
+        TextView landmarkDescription = bottomSheetView.findViewById(R.id.Landmarkdescription);
+        Button navigateButton = bottomSheetView.findViewById(R.id.navigate_button);
+        Button addEventButton = bottomSheetView.findViewById(R.id.addEvent_button);
+        ImageView closeButton = bottomSheetView.findViewById(R.id.close_button);
+
+        // Set Save button click listener
+        navigateButton.setOnClickListener(v -> {
+            performNavigation("Your Location", toLocation, token );
+            bottomSheetDialog.dismiss();
+
+        });
+
+        addEventButton.setOnClickListener(v -> {
+            showAddEventMenu(toLocation, latitude, longitude, token);
+            // Dismiss the dialog after saving
+            bottomSheetDialog.dismiss();
+                });
+
+        closeButton.setOnClickListener(v -> {
+            // Dismiss the dialog after saving
+            bottomSheetDialog.dismiss();
+
+        });
+
+        // Set the content view for the dialog and show it
+        bottomSheetDialog.setContentView(bottomSheetView);
+        bottomSheetDialog.show();
+
     }
 
     private void createEventAPI(String endpoint, String...parameters){
@@ -1134,13 +1152,12 @@ public class ExploreFragment extends Fragment {
                             JSONObject eventDetails = new JSONObject();
                             eventDetails.put("name", parameters[0]);
                             eventDetails.put("description", parameters[1]);
-                            eventDetails.put("location", parameters[2]);
-                            eventDetails.put("time", parameters[3]);
-                            eventDetails.put("latitude", parameters[4]);
-                            eventDetails.put("longitude", parameters[5]);
+                            eventDetails.put("location", parameters[2]);;
+                            eventDetails.put("latitude", parameters[3]);
+                            eventDetails.put("longitude", parameters[4]);
                             eventDetails.put("created_by", user.getUser_id());
 
-                            saveEventToServer("api/events/create", eventDetails);
+                            saveEventToServer("api/events/create", eventDetails, parameters[5]);
                         }
                     }
 
@@ -1151,7 +1168,7 @@ public class ExploreFragment extends Fragment {
         });
     }
 
-    private void saveEventToServer(String endpoint, JSONObject eventDetails) {
+    private void saveEventToServer(String endpoint, JSONObject eventDetails, String token) {
         RequestBody requestBody = RequestBody.create(
                 eventDetails.toString(),
                 MediaType.parse("application/json"));
@@ -1159,6 +1176,7 @@ public class ExploreFragment extends Fragment {
         Request request = new Request.Builder()
                 .url(baseURL + endpoint)
                 .post(requestBody)
+                .addHeader("Authorization", "Bearer "+token)
                 .build();
 
         new Thread(()->{
@@ -1186,7 +1204,7 @@ public class ExploreFragment extends Fragment {
         }).start();
     }
 
-    private void addLongPressListener() {
+    private void addLongPressListener(String token) {
         // Create a MapEventsReceiver to handle gestures
         MapEventsReceiver mapEventsReceiver = new MapEventsReceiver() {
             @Override
@@ -1201,8 +1219,8 @@ public class ExploreFragment extends Fragment {
                 double latitude = geoPoint.getLatitude();
                 double longitude = geoPoint.getLongitude();
 
-                // Call your method to show the event menu
-                showAddEventMenu(latitude, longitude);
+//                // Call your method to show the event menu
+//                showAddEventMenu(latitude, longitude, token);
 
                 // Return true to indicate the long press event was handled
                 return true;

@@ -44,6 +44,7 @@
             android:textSize="14sp"
             android:fontFamily="sans-serif-medium"
             android:hint="Description" />
+
         <EditText
             android:id="@+id/eventLocation"
             android:layout_width="match_parent"
@@ -51,21 +52,11 @@
             android:layout_marginTop="16dp"
             android:background="@drawable/outlined_shape"
             android:paddingStart="20dp"
-            android:inputType="textEmailAddress"
+            android:inputType="none"
+            android:editable="false"
             android:textSize="14sp"
             android:fontFamily="sans-serif-medium"
             android:hint="Location" />
-        <EditText
-            android:id="@+id/eventTime"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/outlined_shape"
-            android:paddingStart="20dp"
-            android:inputType="textEmailAddress"
-            android:textSize="14sp"
-            android:fontFamily="sans-serif-medium"
-            android:hint="Time" />
 
         <Button
             android:layout_width="match_parent"
