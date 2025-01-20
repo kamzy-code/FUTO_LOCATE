@@ -79,6 +79,7 @@ import io.kamzy.futolocate.Models.Landmarks;
 import io.kamzy.futolocate.Models.Routes;
 import io.kamzy.futolocate.Models.Users;
 import io.kamzy.futolocate.Tools.EmailSharedViewModel;
+import io.kamzy.futolocate.Tools.GsonHelper;
 import io.kamzy.futolocate.Tools.TokenSharedViewModel;
 import io.kamzy.futolocate.enums.ModeOfTransport;
 import okhttp3.FormBody;
@@ -109,6 +110,7 @@ public class ExploreFragment extends Fragment {
     private LocationCallback locationCallback;
     GeoPoint futoLocation;
     TokenSharedViewModel tokenSharedViewModel;
+    GsonHelper gsonHelper;
 
 
     // TODO: Rename parameter arguments, choose names that match
@@ -164,6 +166,7 @@ public class ExploreFragment extends Fragment {
         fromEditText = view.findViewById(R.id.fromLocationEditText);
         toEditText = view.findViewById(R.id.toLocationEditText);
         client = new OkHttpClient();
+        gsonHelper = new GsonHelper();
         ctx = requireContext();
 
 
@@ -333,7 +336,7 @@ public class ExploreFragment extends Fragment {
                 Log.i("statusCode", String.valueOf(statusCode));
                 if (response.isSuccessful()){
                     JSONArray responseBody = new JSONArray(response.body().string());
-                    List<Landmarks> allLandmarks = parseJSONArrayUsingGson(String.valueOf(responseBody));
+                    List<Landmarks> allLandmarks = gsonHelper.parseJSONArrayUsingGson(String.valueOf(responseBody));
                     getActivity().runOnUiThread(()->{
                         for (Landmarks landmark : allLandmarks){
                             Log.i("Landmarks", "Name: "+ landmark.getName()+ " Lat: " + landmark.getLatitude()+
@@ -373,7 +376,7 @@ public class ExploreFragment extends Fragment {
                         return; // Exit the method or handle the error appropriately
                     }else {
                         JSONObject responseBody =  new JSONObject(r);
-                        Landmarks l = parseJSONObjectUsingGson(String.valueOf(responseBody));
+                        Landmarks l = gsonHelper.parseJSONObjectUsingGson(String.valueOf(responseBody));
                         switch (action){
                             case "search" :
                                 getActivity().runOnUiThread(() -> {
@@ -521,7 +524,7 @@ public class ExploreFragment extends Fragment {
                         Log.i("Route", "No route found");
                     }else {
                         JSONObject jsonResponse = new JSONObject(responseBody);
-                        Routes routes = parseJSONObjecttoRoute(jsonResponse.toString());
+                        Routes routes = gsonHelper.parseJSONObjecttoRoute(jsonResponse.toString());
                         getActivity().runOnUiThread(()->{
                             Log.i("Route Data", routes.getPath_coordinates());
                             Type listType = new TypeToken<List<List<Double>>>() {}.getType();
@@ -568,33 +571,7 @@ public class ExploreFragment extends Fragment {
 
 
     //    TOOLS
-// convert JSONArray landmarks to List<Landmarks>
-    private List<Landmarks> parseJSONArrayUsingGson(String jsonArrayString) {
-        Gson gson = new Gson();
-        Type listType = new TypeToken<List<Landmarks>>() {}.getType();
-        return gson.fromJson(jsonArrayString, listType);
-    }
 
-    // convert JSONObject landmark to Landmark object
-    private Landmarks parseJSONObjectUsingGson(String jsonObjectString) {
-        Gson gson = new Gson();
-        Type type = new TypeToken<Landmarks>() {}.getType();
-        return gson.fromJson(jsonObjectString, type);
-    }
-
-    // convert JSONObject landmark to Landmark object
-    private Users parseJSONObjectToUser(String jsonObjectString) {
-        Gson gson = new Gson();
-        Type type = new TypeToken<Users>() {}.getType();
-        return gson.fromJson(jsonObjectString, type);
-    }
-
-    // convert JSONObject to Route object
-    private Routes parseJSONObjecttoRoute(String jsonObjectString) {
-        Gson gson = new Gson();
-        Type type = new TypeToken<Routes>() {}.getType();
-        return gson.fromJson(jsonObjectString, type);
-    }
 
     // Method to add landmarks from the DB to the Map
     private void addDBlandmarksToMap(MapView displayedMap, String name, double latitude, double longitude, String token) {
@@ -1147,7 +1124,7 @@ public class ExploreFragment extends Fragment {
 
                         }else {
                             JSONObject jsonResponse = new JSONObject(respsoneBody);
-                            Users user = parseJSONObjectToUser(jsonResponse.toString());
+                            Users user = gsonHelper.parseJSONObjectToUser(jsonResponse.toString());
 
                             JSONObject eventDetails = new JSONObject();
                             eventDetails.put("name", parameters[0]);

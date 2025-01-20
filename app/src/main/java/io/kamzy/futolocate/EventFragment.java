@@ -32,6 +32,7 @@ import java.util.List;
 import io.kamzy.futolocate.Adapter.EventAdapter;
 import io.kamzy.futolocate.Models.Events;
 import io.kamzy.futolocate.Models.Landmarks;
+import io.kamzy.futolocate.Tools.GsonHelper;
 import io.kamzy.futolocate.Tools.TokenSharedViewModel;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -48,6 +49,7 @@ public class EventFragment extends Fragment {
     List<Events> eventsList;
     EventAdapter eventAdapter;
     TokenSharedViewModel tokenSharedViewModel;
+    GsonHelper gsonHelper;
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -97,8 +99,7 @@ public class EventFragment extends Fragment {
 
         recyclerView = view.findViewById(R.id.eventRecyclerView);
         client = new OkHttpClient();
-
-
+        gsonHelper = new GsonHelper();
         return view;
     }
 
@@ -129,7 +130,7 @@ public class EventFragment extends Fragment {
                 Log.i("Status code", String.valueOf(statusCode));
                 if (response.isSuccessful()){
                     JSONArray responseBody = new JSONArray(response.body().string());
-                        eventsList = parseJsonArrayToEventList(String.valueOf(responseBody));
+                        eventsList = gsonHelper.parseJsonArrayToEventList(String.valueOf(responseBody));
                         requireActivity().runOnUiThread(()->{
                             // Set up RecyclerView
                             RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getContext());
@@ -152,9 +153,5 @@ public class EventFragment extends Fragment {
         }).start();
     }
 
-    private List<Events> parseJsonArrayToEventList(String string) {
-        Gson gson = new Gson();
-        Type listType = new TypeToken<List<Events>>() {}.getType();
-        return gson.fromJson(string, listType);
-    }
+
 }

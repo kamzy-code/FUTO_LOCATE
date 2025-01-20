@@ -1,12 +1,37 @@
 package io.kamzy.futolocate;
 
+import static io.kamzy.futolocate.Tools.Tools.prepGetRequestWithoutBody;
+
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.DefaultItemAnimator;
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.osmdroid.views.MapView;
+
+import java.io.IOException;
+import java.util.List;
+
+import io.kamzy.futolocate.Adapter.EventAdapter;
+import io.kamzy.futolocate.Adapter.LandmarkAdapter;
+import io.kamzy.futolocate.Models.Landmarks;
+import io.kamzy.futolocate.Tools.GsonHelper;
+import io.kamzy.futolocate.Tools.TokenSharedViewModel;
+import okhttp3.OkHttpClient;
+import okhttp3.Response;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -14,6 +39,12 @@ import android.view.ViewGroup;
  * create an instance of this fragment.
  */
 public class LandmarkFragment extends Fragment {
+    RecyclerView recyclerView;
+    OkHttpClient client;
+    List<Landmarks> landmarksList;
+    LandmarkAdapter landmarkAdapter;
+    TokenSharedViewModel tokenSharedViewModel;
+    GsonHelper gsonHelper;
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -59,6 +90,51 @@ public class LandmarkFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_landmark, container, false);
+        View view = inflater.inflate(R.layout.fragment_landmark, container, false);
+        recyclerView = view.findViewById(R.id.landmarkRecyclerView);
+        gsonHelper = new GsonHelper();
+        client = new OkHttpClient();
+        return view;
     }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        tokenSharedViewModel = new ViewModelProvider(requireActivity()).get(TokenSharedViewModel.class);
+        tokenSharedViewModel.getData().observe(getViewLifecycleOwner(), value ->{
+            try {
+                getLandmarkList("api/landmark", value);
+            } catch (IOException | JSONException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    private void getLandmarkList (String endpoint, String authToken) throws IOException, JSONException {
+        new Thread(()->{
+            try(Response response = client.newCall(prepGetRequestWithoutBody(endpoint, authToken)).execute()){
+                int statusCode = response.code();
+                Log.i("statusCode", String.valueOf(statusCode));
+                if (response.isSuccessful()){
+                    JSONArray responseBody = new JSONArray(response.body().string());
+                    List<Landmarks> allLandmarks = gsonHelper.parseJSONArrayUsingGson(String.valueOf(responseBody));
+                    getActivity().runOnUiThread(()->{
+                        // Set up RecyclerView
+                        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getContext());
+                        recyclerView.setLayoutManager(layoutManager);
+                        recyclerView.setItemAnimator(new DefaultItemAnimator());
+                        landmarkAdapter = new LandmarkAdapter(allLandmarks, getContext(), getParentFragmentManager());
+                        recyclerView.setAdapter(landmarkAdapter);
+                        //       Add a DividerItemDecoration to control spacing
+                        DividerItemDecoration divider = new DividerItemDecoration(recyclerView.getContext(), LinearLayoutManager.VERTICAL);
+                        recyclerView.addItemDecoration(divider);
+                    });
+                }
+            }catch (IOException | JSONException e){
+                throw new RuntimeException(e);
+            }
+        }).start();
+    }
+
 }

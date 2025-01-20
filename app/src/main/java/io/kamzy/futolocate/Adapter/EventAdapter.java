@@ -26,8 +26,6 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewhol
     private List<Events> eventsList;
     private Context ctx;
     private FragmentManager fragmentManager;
-    Intent intent = new Intent();
-
 
     public EventAdapter(List<Events> eventsList, Context ctx, FragmentManager fragmentManager) {
         this.eventsList = eventsList;
