@@ -7,141 +7,11 @@
     android:layout_height="match_parent"
     tools:context=".Dashboard">
 
-    <LinearLayout
-        android:id="@+id/navigationFieldsContainer"
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/fragment_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_margin="16dp">
-
-        <!-- Normal Search Field -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/searchTextInputLayout"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            app:boxBackgroundMode="outline"
-            app:boxStrokeColor="#2B943F"
-            app:endIconMode="clear_text"
-            app:endIconTint="#2F2F2F">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/searchEditText"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:imeOptions="actionSearch"
-                android:inputType="text"
-                android:hint="Search for location" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Navigation Fields (Initially Hidden) -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/fromTextInputLayout"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="8dp"
-            android:visibility="gone"
-            app:boxBackgroundMode="outline"
-            app:boxStrokeColor="#2B943F"
-            app:endIconMode="clear_text"
-            app:endIconTint="#2F2F2F">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/fromLocationEditText"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:imeOptions="actionSearch"
-                android:inputType="text"
-                android:hint="From Location" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/toTextInputLayout"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="8dp"
-            android:visibility="gone"
-            app:boxBackgroundMode="outline"
-            app:boxStrokeColor="#2B943F"
-            app:endIconMode="clear_text"
-            app:endIconTint="#2F2F2F">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/toLocationEditText"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:imeOptions="actionSearch"
-                android:inputType="text"
-                android:hint="To Location" />
-        </com.google.android.material.textfield.TextInputLayout>
-    </LinearLayout>
-
-
-<!--filters -->
-    <com.google.android.material.chip.ChipGroup
-        android:id="@+id/chip_group"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_below="@+id/navigationFieldsContainer"
-        app:singleSelection="true">
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_all"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="All"/>
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_building"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Building"/>
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_facilty"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Facility"/>
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_food"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Food"/>
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_bank"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Bank"/>
-    </com.google.android.material.chip.ChipGroup>
-
-<!--Map view-->
-    <org.osmdroid.views.MapView
-        android:id="@+id/map_view"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_below="@id/chip_group"
-        android:layout_above="@id/bottom_navigation"
-        android:layout_marginTop="8dp" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/bx_current_location"
-        android:layout_above="@id/fab_navigate"
-        android:layout_alignParentEnd="true"
-        android:id="@+id/fab_locate"
-        android:layout_marginBottom="32dp"
-        android:layout_marginEnd="16dp"/>
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/navigate"
-        android:layout_above="@id/bottom_navigation"
-        android:layout_alignParentEnd="true"
-        android:id="@+id/fab_navigate"
-        android:layout_marginBottom="32dp"
-        android:layout_marginEnd="16dp"/>
+        android:layout_above="@+id/bottom_navigation"/>
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
@@ -152,6 +22,143 @@
         app:labelVisibilityMode="labeled"
         app:itemIconTint="@color/selector_bottom_nav_color"
         app:itemTextColor="@color/selector_bottom_nav_color"
-        app:itemBackground="@drawable/selector_nav_background"/>
+        app:itemBackground="@drawable/selector_nav_background" />
+<!--    <LinearLayout-->
+<!--        android:id="@+id/navigationFieldsContainer"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:orientation="vertical"-->
+<!--        android:layout_margin="16dp">-->
+
+<!--        &lt;!&ndash; Normal Search Field &ndash;&gt;-->
+<!--        <com.google.android.material.textfield.TextInputLayout-->
+<!--            android:id="@+id/searchTextInputLayout"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="56dp"-->
+<!--            app:boxBackgroundMode="outline"-->
+<!--            app:boxStrokeColor="#2B943F"-->
+<!--            app:endIconMode="clear_text"-->
+<!--            app:endIconTint="#2F2F2F">-->
+
+<!--            <com.google.android.material.textfield.TextInputEditText-->
+<!--                android:id="@+id/searchEditText"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="match_parent"-->
+<!--                android:imeOptions="actionSearch"-->
+<!--                android:inputType="text"-->
+<!--                android:hint="Search for location" />-->
+<!--        </com.google.android.material.textfield.TextInputLayout>-->
+
+<!--        &lt;!&ndash; Navigation Fields (Initially Hidden) &ndash;&gt;-->
+<!--        <com.google.android.material.textfield.TextInputLayout-->
+<!--            android:id="@+id/fromTextInputLayout"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="56dp"-->
+<!--            android:layout_marginTop="8dp"-->
+<!--            android:visibility="gone"-->
+<!--            app:boxBackgroundMode="outline"-->
+<!--            app:boxStrokeColor="#2B943F"-->
+<!--            app:endIconMode="clear_text"-->
+<!--            app:endIconTint="#2F2F2F">-->
+
+<!--            <com.google.android.material.textfield.TextInputEditText-->
+<!--                android:id="@+id/fromLocationEditText"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="match_parent"-->
+<!--                android:imeOptions="actionSearch"-->
+<!--                android:inputType="text"-->
+<!--                android:hint="From Location" />-->
+<!--        </com.google.android.material.textfield.TextInputLayout>-->
+
+<!--        <com.google.android.material.textfield.TextInputLayout-->
+<!--            android:id="@+id/toTextInputLayout"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="56dp"-->
+<!--            android:layout_marginTop="8dp"-->
+<!--            android:visibility="gone"-->
+<!--            app:boxBackgroundMode="outline"-->
+<!--            app:boxStrokeColor="#2B943F"-->
+<!--            app:endIconMode="clear_text"-->
+<!--            app:endIconTint="#2F2F2F">-->
+
+<!--            <com.google.android.material.textfield.TextInputEditText-->
+<!--                android:id="@+id/toLocationEditText"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="match_parent"-->
+<!--                android:imeOptions="actionSearch"-->
+<!--                android:inputType="text"-->
+<!--                android:hint="To Location" />-->
+<!--        </com.google.android.material.textfield.TextInputLayout>-->
+<!--    </LinearLayout>-->
+
+
+<!--&lt;!&ndash;filters &ndash;&gt;-->
+<!--    <com.google.android.material.chip.ChipGroup-->
+<!--        android:id="@+id/chip_group"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_marginTop="8dp"-->
+<!--        android:layout_marginStart="16dp"-->
+<!--        android:layout_marginEnd="16dp"-->
+<!--        android:layout_below="@+id/navigationFieldsContainer"-->
+<!--        app:singleSelection="true">-->
+
+<!--        <com.google.android.material.chip.Chip-->
+<!--            android:id="@+id/chip_all"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:text="All"/>-->
+<!--        <com.google.android.material.chip.Chip-->
+<!--            android:id="@+id/chip_building"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:text="Building"/>-->
+<!--        <com.google.android.material.chip.Chip-->
+<!--            android:id="@+id/chip_facilty"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:text="Facility"/>-->
+<!--        <com.google.android.material.chip.Chip-->
+<!--            android:id="@+id/chip_food"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:text="Food"/>-->
+<!--        <com.google.android.material.chip.Chip-->
+<!--            android:id="@+id/chip_bank"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:text="Bank"/>-->
+<!--    </com.google.android.material.chip.ChipGroup>-->
+
+<!--&lt;!&ndash;Map view&ndash;&gt;-->
+<!--    <org.osmdroid.views.MapView-->
+<!--        android:id="@+id/map_view"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="0dp"-->
+<!--        android:layout_below="@id/chip_group"-->
+<!--        android:layout_above="@id/bottom_navigation"-->
+<!--        android:layout_marginTop="8dp" />-->
+
+<!--    <com.google.android.material.floatingactionbutton.FloatingActionButton-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:src="@drawable/bx_current_location"-->
+<!--        android:layout_above="@id/fab_navigate"-->
+<!--        android:layout_alignParentEnd="true"-->
+<!--        android:id="@+id/fab_locate"-->
+<!--        android:layout_marginBottom="32dp"-->
+<!--        android:layout_marginEnd="16dp"/>-->
+
+<!--    <com.google.android.material.floatingactionbutton.FloatingActionButton-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:src="@drawable/navigate"-->
+<!--        android:layout_above="@id/bottom_navigation"-->
+<!--        android:layout_alignParentEnd="true"-->
+<!--        android:id="@+id/fab_navigate"-->
+<!--        android:layout_marginBottom="32dp"-->
+<!--        android:layout_marginEnd="16dp"/>-->
+
+
 
 </RelativeLayout>

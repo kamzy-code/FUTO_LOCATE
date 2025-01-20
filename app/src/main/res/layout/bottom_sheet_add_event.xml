@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:id="@+id/addEvent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Add Event"
+            android:textSize="32sp"
+            android:gravity="center_horizontal"
+            android:textStyle="normal"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="#171D29"
+            android:layout_marginTop="25dp">
+        </TextView>
+        <EditText
+            android:id="@+id/eventName"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/outlined_shape"
+            android:paddingStart="20dp"
+            android:inputType="text"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-medium"
+            android:hint="Event Name" />
+        <EditText
+            android:id="@+id/eventDescription"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/outlined_shape"
+            android:paddingStart="20dp"
+            android:inputType="text"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-medium"
+            android:hint="Description" />
+        <EditText
+            android:id="@+id/eventLocation"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/outlined_shape"
+            android:paddingStart="20dp"
+            android:inputType="textEmailAddress"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-medium"
+            android:hint="Location" />
+        <EditText
+            android:id="@+id/eventTime"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/outlined_shape"
+            android:paddingStart="20dp"
+            android:inputType="textEmailAddress"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-medium"
+            android:hint="Time" />
+
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:id="@+id/saveEventButton"
+            android:text="Save"
+            android:layout_marginTop="25dp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-medium"
+            android:textSize="16sp"
+            android:backgroundTint="#2B943F">
+        </Button>
+    </LinearLayout>
+</LinearLayout>
