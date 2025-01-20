@@ -1076,16 +1076,19 @@ public class ExploreFragment extends Fragment {
 
         // Set Save button click listener
         navigateButton.setOnClickListener(v -> {
-            performNavigation("Your Location", toLocation, token );
             bottomSheetDialog.dismiss();
+            performNavigation("Your Location", toLocation, token );
 
         });
 
+        // Set the content view for the dialog and show it
+        bottomSheetDialog.setContentView(bottomSheetView);
+        bottomSheetDialog.show();
+
         addEventButton.setOnClickListener(v -> {
-            showAddEventMenu(toLocation, latitude, longitude, token);
-            // Dismiss the dialog after saving
             bottomSheetDialog.dismiss();
-                });
+            showAddEventMenu(toLocation, latitude, longitude, token);
+        });
 
         closeButton.setOnClickListener(v -> {
             // Dismiss the dialog after saving
@@ -1093,9 +1096,6 @@ public class ExploreFragment extends Fragment {
 
         });
 
-        // Set the content view for the dialog and show it
-        bottomSheetDialog.setContentView(bottomSheetView);
-        bottomSheetDialog.show();
 
     }
 

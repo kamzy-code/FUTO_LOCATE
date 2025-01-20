@@ -100,12 +100,6 @@ public class EventFragment extends Fragment {
         recyclerView = view.findViewById(R.id.eventRecyclerView);
         client = new OkHttpClient();
         gsonHelper = new GsonHelper();
-        return view;
-    }
-
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
 
         tokenSharedViewModel = new ViewModelProvider(requireActivity()).get(TokenSharedViewModel.class);
         tokenSharedViewModel.getData().observe(getViewLifecycleOwner(), value ->{
@@ -115,6 +109,22 @@ public class EventFragment extends Fragment {
                 throw new RuntimeException(e);
             }
         });
+
+        return view;
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+//        tokenSharedViewModel = new ViewModelProvider(requireActivity()).get(TokenSharedViewModel.class);
+//        tokenSharedViewModel.getData().observe(getViewLifecycleOwner(), value ->{
+//            try {
+//                getAllEventsAPI("api/events", value);
+//            } catch (IOException | JSONException e) {
+//                throw new RuntimeException(e);
+//            }
+//        });
     }
 
     private void getAllEventsAPI (String endpoint, String token) throws IOException, JSONException {

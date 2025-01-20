@@ -3,7 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:id="@+id/bottom_sheet_container"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="#2B943F"
     tools:context=".EventFragment">
@@ -13,7 +12,7 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:layout_marginTop="50dp"
-        android:background="@color/white">
+        android:background="#FFFFFF">
 
         <RelativeLayout
             android:layout_width="match_parent"
