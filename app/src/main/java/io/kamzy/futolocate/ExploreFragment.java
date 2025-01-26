@@ -24,13 +24,20 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.DefaultItemAnimator;
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -44,7 +51,6 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
-import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -52,7 +58,6 @@ import com.google.gson.reflect.TypeToken;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.osmdroid.api.IMapController;
 import org.osmdroid.config.Configuration;
 import org.osmdroid.events.MapEventsReceiver;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
@@ -75,11 +80,15 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
+import io.kamzy.futolocate.Adapter.EventAdapter;
+import io.kamzy.futolocate.Models.Events;
 import io.kamzy.futolocate.Models.Landmarks;
 import io.kamzy.futolocate.Models.Routes;
 import io.kamzy.futolocate.Models.Users;
+import io.kamzy.futolocate.Tools.DataManager;
 import io.kamzy.futolocate.Tools.EmailSharedViewModel;
 import io.kamzy.futolocate.Tools.GsonHelper;
+import io.kamzy.futolocate.Tools.LandmarkAPICallback;
 import io.kamzy.futolocate.Tools.TokenSharedViewModel;
 import io.kamzy.futolocate.enums.ModeOfTransport;
 import okhttp3.FormBody;
@@ -102,7 +111,7 @@ public class ExploreFragment extends Fragment {
     OkHttpClient client;
     String token, fromLocation, toLocation, getLocationAction;
     TextInputLayout searchTextInputLayout, fromTextInputLayout, toTextInputLayout;
-    TextInputEditText searchEditText, fromEditText, toEditText;
+    AutoCompleteTextView searchEditText, fromEditText, toEditText;
     Marker searchMarker, fromMarker, toMarker, currentLocationMarker;
     Polyline routeLine;
     private static final int LOCATION_PERMISSION_REQUEST = 100;
@@ -170,6 +179,7 @@ public class ExploreFragment extends Fragment {
         ctx = requireContext();
 
 
+
         getLocationAction = "default";
         // Initialize FusedLocationProviderClient
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(ctx);
@@ -184,9 +194,9 @@ public class ExploreFragment extends Fragment {
         }
         Configuration.getInstance().setOsmdroidTileCache(cacheDir);
 
-        mapView.getController().setZoom(17.0);
+        mapView.getController().setZoom(19.0);
         mapView.setTileSource(TileSourceFactory.MAPNIK);
-        futoLocation = new GeoPoint(5.3792, 6.9974);
+        futoLocation = new GeoPoint(5.384741258, 6.996245841);
         mapView.getController().setCenter(futoLocation);
         mapView.setMultiTouchControls(true);
 
@@ -218,16 +228,48 @@ public class ExploreFragment extends Fragment {
             }
             Configuration.getInstance().setOsmdroidTileCache(cacheDir);
 
-            mapView.getController().setZoom(17.0);
+            mapView.getController().setZoom(19.0);
             mapView.setTileSource(TileSourceFactory.MAPNIK);
-            futoLocation = new GeoPoint(5.3792, 6.9974);
+            futoLocation = new GeoPoint(5.384741258, 6.996245841);
             mapView.getController().setCenter(futoLocation);
             mapView.setMultiTouchControls(true);
 
 
 //        get Landmarks from DB
             try {
-                getAllLandmarkAPI("api/landmark", token, mapView);
+                getAllLandmarkAPI("api/landmark", token, mapView, new LandmarkAPICallback<List<Landmarks>>() {
+                    @Override
+                    public void onSuccess(List<Landmarks> landmarksList) {
+                            //                initialize landmark list
+                            List<Landmarks> landmarks = landmarksList;
+                            if (landmarks != null){
+                                String[] landmarkNames = new String[landmarks.size()];
+                                for (int i = 0; i < landmarks.size(); i++) {
+                                    landmarkNames[i] = landmarks.get(i).getName();
+                                }
+                                ArrayAdapter<String> LandmarkNameAdapter = new ArrayAdapter<>(
+                                        ctx,
+                                        android.R.layout.simple_dropdown_item_1line,
+                                        landmarkNames
+                                );
+                                Handler hanler = new Handler(Looper.getMainLooper());
+                                hanler.post(()->{
+                                    searchEditText.setAdapter(LandmarkNameAdapter);
+                                    fromEditText.setAdapter(LandmarkNameAdapter);
+                                    toEditText.setAdapter(LandmarkNameAdapter);
+                                });
+                            }else {
+                                Log.i("Recipient Group List", "No groups found");
+                            }
+
+
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+
+                    }
+                });
             } catch (IOException | JSONException e) {
                 throw new RuntimeException(e);
             }
@@ -242,12 +284,14 @@ public class ExploreFragment extends Fragment {
                 double longitude = bundle.getDouble("longitude");
                 String eventName = bundle.getString("eventName");
                 String eventLocation = bundle.getString("eventLocation");
+                String searchlocation = bundle.getString("landmark");
 
-//                // Center the map and add a marker
-//                mapView.getController().setZoom(17.0);
-//                GeoPoint eventGeoPoint = new GeoPoint(latitude, longitude);
-//                mapView.getController().setCenter(eventGeoPoint);
-                performNavigation("Your Location", eventLocation, value);
+                if (searchlocation != null){
+                    performSearch(searchlocation, value, mapView, searchMarker -> {
+                    });
+                }else {
+                    performNavigation("Your Location", eventLocation, value);
+                }
             }
 
             // Floating Action Button
@@ -276,6 +320,7 @@ public class ExploreFragment extends Fragment {
 
 //        normal search action button
             searchEditText.setOnEditorActionListener((v, actionId, event) -> {
+
                 if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                     String query = searchEditText.getText().toString().trim();
                     Log.i("Search", "Query: " + query);
@@ -289,6 +334,7 @@ public class ExploreFragment extends Fragment {
             });
 
             //      Navigate action
+
             fromEditText.setOnEditorActionListener((v, actionId, event) -> {
                 fromLocation = fromEditText.getText().toString();
                 toLocation = toEditText.getText().toString();
@@ -310,6 +356,8 @@ public class ExploreFragment extends Fragment {
                 }
                 return false;
             });
+
+
         });
 
     }
@@ -329,7 +377,7 @@ public class ExploreFragment extends Fragment {
 
     //  APIs
 //  get all landmarks from DB
-    private void getAllLandmarkAPI (String endpoint, String authToken, MapView map) throws IOException, JSONException {
+    private void getAllLandmarkAPI (String endpoint, String authToken, MapView map, LandmarkAPICallback<List<Landmarks>> landmarkAPICallback) throws IOException, JSONException {
         new Thread(()->{
             try(Response response = client.newCall(prepGetRequestWithoutBody(endpoint, authToken)).execute()){
                 int statusCode = response.code();
@@ -337,11 +385,15 @@ public class ExploreFragment extends Fragment {
                 if (response.isSuccessful()){
                     JSONArray responseBody = new JSONArray(response.body().string());
                     List<Landmarks> allLandmarks = gsonHelper.parseJSONArrayUsingGson(String.valueOf(responseBody));
+                    DataManager.getInstance().setAllLandmarks(allLandmarks);
+                    if (landmarkAPICallback != null){
+                        landmarkAPICallback.onSuccess(allLandmarks);
+                    }
                     getActivity().runOnUiThread(()->{
                         for (Landmarks landmark : allLandmarks){
                             Log.i("Landmarks", "Name: "+ landmark.getName()+ " Lat: " + landmark.getLatitude()+
                                     " Long: " + landmark.getLongitude() + " Cat: " + landmark.getCategory());
-                            addDBlandmarksToMap(map, landmark.getName(), landmark.getLatitude(), landmark.getLongitude(), authToken);
+                            addDBlandmarksToMap(map, landmark.getName(), landmark.getDescription(), landmark.getLatitude(), landmark.getLongitude(), authToken);
                         }
                     });
                 }
@@ -574,7 +626,7 @@ public class ExploreFragment extends Fragment {
 
 
     // Method to add landmarks from the DB to the Map
-    private void addDBlandmarksToMap(MapView displayedMap, String name, double latitude, double longitude, String token) {
+    private void addDBlandmarksToMap(MapView displayedMap, String name, String description, double latitude, double longitude, String token) {
         // Set up the Paint for the text
         Paint paint = new Paint();
         paint.setColor(android.graphics.Color.BLACK);
@@ -601,10 +653,11 @@ public class ExploreFragment extends Fragment {
         // Create a Drawable from the Bitmap
         BitmapDrawable drawable = new BitmapDrawable(mapView.getContext().getResources(), bitmap);
 
+        GeoPoint geoPoint = new GeoPoint(latitude, longitude);
 //        add the marker to the map
         // Create the Marker
         Marker marker = new Marker(mapView);
-        marker.setPosition(new GeoPoint(latitude, longitude));
+        marker.setPosition(geoPoint);
         marker.setIcon(drawable);
         marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_TOP); // Center the text above the marker
         marker.setTitle(name); // This shows a title when the marker is tapped
@@ -613,7 +666,7 @@ public class ExploreFragment extends Fragment {
         displayedMap.invalidate(); // Refreshes the map
 
         marker.setOnMarkerClickListener((marker1, mapView1) -> {
-            showLandmarkClickDialogue(displayedMap,name, latitude, longitude, token);
+            showLandmarkClickDialogue(displayedMap,name, description, latitude, longitude, token);
             return true;
         });
     }
@@ -1057,7 +1110,7 @@ public class ExploreFragment extends Fragment {
         bottomSheetDialog.show();
     }
 
-    private void showLandmarkClickDialogue(MapView map, String toLocation, double latitude, double longitude, String token) {
+    public void showLandmarkClickDialogue(MapView map, String toLocation, String description, double latitude, double longitude, String token) {
         // Use Fragment's context for the BottomSheetDialog
         BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(requireContext());
 
@@ -1073,6 +1126,10 @@ public class ExploreFragment extends Fragment {
         Button navigateButton = bottomSheetView.findViewById(R.id.navigate_button);
         Button addEventButton = bottomSheetView.findViewById(R.id.addEvent_button);
         ImageView closeButton = bottomSheetView.findViewById(R.id.close_button);
+
+        LandmarkTitle.setText(toLocation);
+        landmarkDescription.setText(description);
+
 
         // Set Save button click listener
         navigateButton.setOnClickListener(v -> {
@@ -1171,6 +1228,12 @@ public class ExploreFragment extends Fragment {
 
                         requireActivity().runOnUiThread(()->{
                             Toast.makeText(ctx, "Event created successfully", Toast.LENGTH_LONG).show();
+
+                            try {
+                                getAllEventsAPI("api/events", token);
+                            } catch (IOException | JSONException e) {
+                                throw new RuntimeException(e);
+                            }
                         });
 
                     }
@@ -1180,6 +1243,33 @@ public class ExploreFragment extends Fragment {
             }
         }).start();
     }
+
+
+    private void getAllEventsAPI (String endpoint, String token) throws IOException, JSONException {
+        Request request = new Request.Builder()
+                .url(baseURL + endpoint)
+                .get()
+                .addHeader("Authorization", "Bearer "+token)
+                .build();
+
+        new Thread(()->{
+            try(Response response = client.newCall(request).execute()) {
+                int statusCode = response.code();
+                Log.i("Status code", String.valueOf(statusCode));
+                if (response.isSuccessful()){
+                    JSONArray responseBody = new JSONArray(response.body().string());
+                    List<Events> eventsList = gsonHelper.parseJsonArrayToEventList(String.valueOf(responseBody));
+                    DataManager.getInstance().setAllEvents(eventsList);
+
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
+        }).start();
+    }
+
 
     private void addLongPressListener(String token) {
         // Create a MapEventsReceiver to handle gestures

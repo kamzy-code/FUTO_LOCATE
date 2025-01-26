@@ -79,6 +79,11 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewhol
         return eventsList.size();
     }
 
+    public void updateEvents (List<Events> events){
+        this.eventsList = events;
+        notifyDataSetChanged();
+    }
+
     static class EventViewholder extends RecyclerView.ViewHolder{
         TextView eventName, eventDescription, eventLocation;
         ImageButton navigatebutton;

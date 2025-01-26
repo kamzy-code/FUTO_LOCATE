@@ -4,13 +4,22 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".ExploreFragment">
+    tools:context=".ExploreFragment"
+    android:background="@android:color/transparent">
 
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:background="@android:color/transparent">
+
+        <org.osmdroid.views.MapView
+            android:id="@+id/map_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+
         <LinearLayout
             android:id="@+id/navigationFieldsContainer"
             android:layout_width="match_parent"
@@ -24,16 +33,17 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 app:boxBackgroundMode="outline"
-                app:boxStrokeColor="#2B943F"
+                style="@style/TextInputLayoutStyle"
                 app:endIconMode="clear_text"
                 app:endIconTint="#2F2F2F">
 
-                <com.google.android.material.textfield.TextInputEditText
+                <AutoCompleteTextView
                     android:id="@+id/searchEditText"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:imeOptions="actionSearch"
                     android:inputType="text"
+                    android:padding="16dp"
                     android:hint="Search for location" />
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -45,16 +55,17 @@
                 android:layout_marginTop="8dp"
                 android:visibility="gone"
                 app:boxBackgroundMode="outline"
-                app:boxStrokeColor="#2B943F"
+                style="@style/TextInputLayoutStyle"
                 app:endIconMode="clear_text"
                 app:endIconTint="#2F2F2F">
 
-                <com.google.android.material.textfield.TextInputEditText
+                <AutoCompleteTextView
                     android:id="@+id/fromLocationEditText"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:imeOptions="actionSearch"
                     android:inputType="text"
+                    android:padding="16dp"
                     android:hint="From Location" />
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -65,66 +76,62 @@
                 android:layout_marginTop="8dp"
                 android:visibility="gone"
                 app:boxBackgroundMode="outline"
-                app:boxStrokeColor="#2B943F"
+                style="@style/TextInputLayoutStyle"
                 app:endIconMode="clear_text"
                 app:endIconTint="#2F2F2F">
 
-                <com.google.android.material.textfield.TextInputEditText
+                <AutoCompleteTextView
                     android:id="@+id/toLocationEditText"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:imeOptions="actionSearch"
                     android:inputType="text"
+                    android:padding="16dp"
                     android:hint="To Location" />
             </com.google.android.material.textfield.TextInputLayout>
         </LinearLayout>
 
 
-        <!--filters -->
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chip_group"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_below="@+id/navigationFieldsContainer"
-            app:singleSelection="true">
+<!--        &lt;!&ndash;filters &ndash;&gt;-->
+<!--        <com.google.android.material.chip.ChipGroup-->
+<!--            android:id="@+id/chip_group"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_marginTop="8dp"-->
+<!--            android:layout_marginStart="16dp"-->
+<!--            android:layout_marginEnd="16dp"-->
+<!--            android:layout_below="@+id/navigationFieldsContainer"-->
+<!--            app:singleSelection="true">-->
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_all"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="All"/>
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_building"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Building"/>
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_facilty"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Facility"/>
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_food"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Food"/>
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_bank"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Bank"/>
-        </com.google.android.material.chip.ChipGroup>
+<!--            <com.google.android.material.chip.Chip-->
+<!--                android:id="@+id/chip_all"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="All"/>-->
+<!--            <com.google.android.material.chip.Chip-->
+<!--                android:id="@+id/chip_building"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="Building"/>-->
+<!--            <com.google.android.material.chip.Chip-->
+<!--                android:id="@+id/chip_facilty"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="Facility"/>-->
+<!--            <com.google.android.material.chip.Chip-->
+<!--                android:id="@+id/chip_food"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="Food"/>-->
+<!--            <com.google.android.material.chip.Chip-->
+<!--                android:id="@+id/chip_bank"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="Bank"/>-->
+<!--        </com.google.android.material.chip.ChipGroup>-->
 
         <!--Map view-->
-        <org.osmdroid.views.MapView
-            android:id="@+id/map_view"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/chip_group"
-            android:layout_marginTop="8dp" />
+
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:layout_width="wrap_content"

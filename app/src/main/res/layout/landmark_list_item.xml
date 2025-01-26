@@ -44,7 +44,6 @@
             android:src="@drawable/mdi_location"
             android:padding="10dp"
             android:id="@+id/listSearchButton"
-            style="@style/Widget.Material3.MaterialTimePicker.ImageButton"
-            android:backgroundTint="#CAE4CF"/>
+            android:backgroundTint="@android:color/transparent"/>
     </LinearLayout>
 </LinearLayout>

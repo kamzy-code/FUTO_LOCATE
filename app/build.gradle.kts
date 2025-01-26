@@ -45,13 +45,14 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     implementation("org.osmdroid:osmdroid-android:6.1.14")
     implementation ("org.osmdroid:osmdroid-android:6.1.12")
+    implementation ("org.osmdroid:osmdroid-android:6.1.15")
+    implementation ("org.osmdroid:osmdroid-mapsforge:6.1.15") // Optional if you need clustering support
     implementation ("com.google.android.material:material:1.9.0")
+    implementation ("org.mapsforge:vtm-android:0.14.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation ("com.google.code.gson:gson:2.8.9")
     implementation ("com.google.android.gms:play-services-location:21.0.1")
     implementation ("com.google.android.material:material:1.12.0")
-
-
 
 
 

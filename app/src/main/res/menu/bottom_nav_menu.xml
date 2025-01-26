@@ -9,11 +9,7 @@
         android:icon="@drawable/landmark"
         android:title="Landmark"/>
     <item
-        android:id="@+id/history"
+        android:id="@+id/events"
         android:icon="@drawable/logs"
-        android:title="History"/>
-    <item
-        android:id="@+id/profile"
-        android:icon="@drawable/profile"
-        android:title="Profile"/>
+        android:title="Events" />
 </menu>

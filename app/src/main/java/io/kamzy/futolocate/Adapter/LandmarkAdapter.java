@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
 
+import io.kamzy.futolocate.Dashboard;
 import io.kamzy.futolocate.Models.Landmarks;
 import io.kamzy.futolocate.R;
 
@@ -44,6 +45,10 @@ public class LandmarkAdapter extends RecyclerView.Adapter<LandmarkAdapter.Landma
             @Override
             public void onClick(View view) {
                 // Handle the button click event here
+                if (ctx instanceof Dashboard) {
+                    Dashboard activity = (Dashboard) ctx;
+                    activity.navigateToExploreForSearch(landmarks.getName());
+                }
             }
         });
 

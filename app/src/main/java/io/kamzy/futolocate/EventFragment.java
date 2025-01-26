@@ -32,6 +32,7 @@ import java.util.List;
 import io.kamzy.futolocate.Adapter.EventAdapter;
 import io.kamzy.futolocate.Models.Events;
 import io.kamzy.futolocate.Models.Landmarks;
+import io.kamzy.futolocate.Tools.DataManager;
 import io.kamzy.futolocate.Tools.GsonHelper;
 import io.kamzy.futolocate.Tools.TokenSharedViewModel;
 import okhttp3.OkHttpClient;
@@ -117,14 +118,15 @@ public class EventFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-//        tokenSharedViewModel = new ViewModelProvider(requireActivity()).get(TokenSharedViewModel.class);
-//        tokenSharedViewModel.getData().observe(getViewLifecycleOwner(), value ->{
-//            try {
-//                getAllEventsAPI("api/events", value);
-//            } catch (IOException | JSONException e) {
-//                throw new RuntimeException(e);
-//            }
-//        });
+    }
+
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        eventsList = DataManager.getInstance().getAllEvents();
+        if (eventsList != null) {
+            eventAdapter.updateEvents(eventsList);
+        }
     }
 
     private void getAllEventsAPI (String endpoint, String token) throws IOException, JSONException {
@@ -141,6 +143,7 @@ public class EventFragment extends Fragment {
                 if (response.isSuccessful()){
                     JSONArray responseBody = new JSONArray(response.body().string());
                         eventsList = gsonHelper.parseJsonArrayToEventList(String.valueOf(responseBody));
+                    DataManager.getInstance().setAllEvents(eventsList);
                         requireActivity().runOnUiThread(()->{
                             // Set up RecyclerView
                             RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getContext());

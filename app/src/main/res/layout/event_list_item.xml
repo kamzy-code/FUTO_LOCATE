@@ -57,8 +57,7 @@
             android:layout_height="50dp"
             android:src="@drawable/navigate"
             android:id="@+id/listNavigateButton"
-            style="@style/Widget.Material3.MaterialTimePicker.ImageButton"
-            android:backgroundTint="#CAE4CF"/>
+            android:backgroundTint="@android:color/transparent"/>
     </LinearLayout>
 
 
